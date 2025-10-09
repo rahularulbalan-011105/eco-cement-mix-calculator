@@ -55,7 +55,7 @@
                     
                     <!-- Core Parameters -->
                     <div class="mb-8">
-                        <h3 class="text-xl font-medium text-gray-700 mb-4">Core Parameters (Standard & Eco)</h3>
+                        <h3 class="text-xl font-medium text-gray-700 mb-4">Core Parameters</h3>
                         
                         <div class="space-y-4">
                             <!-- Target Strength -->
@@ -63,7 +63,56 @@
                                 <label for="fck_mpa" class="block text-sm font-medium text-gray-600">Target Strength (fck, MPa)</label>
                                 <input type="number" id="fck_mpa" name="fck_mpa" value="40" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
                             </div>
+                            
+                            <!-- W/C and Slump Grid -->
+                            <div class="input-grid">
+                                <div>
+                                    <label for="w_c_ratio" class="block text-sm font-medium text-gray-600">Water/Cement (w/c) Ratio</label>
+                                    <input type="number" id="w_c_ratio" name="w_c_ratio" value="0.36" step="0.01" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                </div>
+                                <div>
+                                    <label for="slump_mm" class="block text-sm font-medium text-gray-600">Slump (mm)</label>
+                                    <input type="number" id="slump_mm" name="slump_mm" value="75" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                </div>
+                            </div>
+                            
+                            <!-- Exposure Condition -->
+                            <div>
+                                <label for="exposure" class="block text-sm font-medium text-gray-600">Exposure Condition (IS 456)</label>
+                                <select id="exposure" name="exposure" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                    <option value="mild">Mild</option>
+                                    <option value="moderate">Moderate</option>
+                                    <option value="severe" selected>Severe</option>
+                                    <option value="very_severe">Very Severe</option>
+                                    <option value="extreme">Extreme</option>
+                                </select>
+                            </div>
 
+                            <!-- Placing Method -->
+                            <div>
+                                <label for="placing_method" class="block text-sm font-medium text-gray-600">Placing Method</label>
+                                <select id="placing_method" name="placing_method" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                    <option value="manual_placing">Manual Placing</option>
+                                    <option value="chute_non_pumpable" selected>Chute (Non-Pumpable)</option>
+                                    <option value="pumping">Pumping</option>
+                                </select>
+                            </div>
+
+                            <!-- Superplasticizer Checkbox -->
+                            <div class="pt-2">
+                                <label class="flex items-center text-sm font-medium text-gray-600 cursor-pointer">
+                                    <input type="checkbox" id="use_superplasticizer" name="use_superplasticizer" checked class="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500">
+                                    <span class="ml-2">Use Superplasticizer (20% water reduction)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Material Inputs -->
+                    <div class="mb-8">
+                        <h3 class="text-xl font-medium text-gray-700 mb-4 border-t pt-4">Material Inputs</h3>
+                        <div class="space-y-4">
+                            
                             <!-- Cement Selection Grid -->
                             <div class="input-grid">
                                 <div>
@@ -85,92 +134,91 @@
                                 </div>
                             </div>
                             
-                            <!-- W/C and Slump Grid -->
+                            <!-- Max Aggregate Size -->
+                            <div>
+                                <label for="max_agg_size_mm" class="block text-sm font-medium text-gray-600">Max Aggregate Size (mm)</label>
+                                <select id="max_agg_size_mm" name="max_agg_size_mm" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                    <option value="20" selected>20 mm</option>
+                                    <option value="10">10 mm</option>
+                                    <option value="12.5">12.5 mm</option>
+                                    <option value="40">40 mm</option>
+                                </select>
+                            </div>
+                            
+                            <h4 class="text-lg font-medium text-gray-700 mt-6 pt-2 border-t">Specific Gravity</h4>
+
+                            <!-- Specific Gravity Inputs -->
                             <div class="input-grid">
                                 <div>
-                                    <label for="w_c_ratio" class="block text-sm font-medium text-gray-600">Water/Cement (w/c) Ratio</label>
-                                    <input type="number" id="w_c_ratio" name="w_c_ratio" value="0.36" step="0.01" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                    <label for="sg_cement" class="block text-sm font-medium text-gray-600">Cement</label>
+                                    <input type="number" id="sg_cement" name="sg_cement" value="3.15" step="0.01" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
                                 </div>
                                 <div>
-                                    <label for="slump_mm" class="block text-sm font-medium text-gray-600">Slump (mm)</label>
-                                    <input type="number" id="slump_mm" name="slump_mm" value="75" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                    <label for="sg_coarse" class="block text-sm font-medium text-gray-600">Coarse Aggregate</label>
+                                    <input type="number" id="sg_coarse" name="sg_coarse" value="2.70" step="0.01" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                </div>
+                                <div>
+                                    <label for="sg_fine" class="block text-sm font-medium text-gray-600">Fine Aggregate</label>
+                                    <input type="number" id="sg_fine" name="sg_fine" value="2.65" step="0.01" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                </div>
+                            </div>
+
+                            <h4 class="text-lg font-medium text-gray-700 mt-6 pt-2 border-t">Water Absorption (%)</h4>
+                            
+                            <!-- Water Absorption Inputs -->
+                            <div class="input-grid">
+                                <div>
+                                    <label for="wa_coarse" class="block text-sm font-medium text-gray-600">Coarse Aggregate</label>
+                                    <input type="number" id="wa_coarse" name="wa_coarse" value="0.50" step="0.01" min="0" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                </div>
+                                <div>
+                                    <label for="wa_fine" class="block text-sm font-medium text-gray-600">Fine Aggregate</label>
+                                    <input type="number" id="wa_fine" name="wa_fine" value="1.00" step="0.01" min="0" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
                                 </div>
                             </div>
                             
-                            <!-- Aggregate Size and Placing Grid -->
-                            <div class="input-grid">
-                                <div>
-                                    <label for="max_agg_size_mm" class="block text-sm font-medium text-gray-600">Max Aggregate Size (mm)</label>
-                                    <select id="max_agg_size_mm" name="max_agg_size_mm" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
-                                        <option value="20" selected>20 mm</option>
-                                        <option value="10">10 mm</option>
-                                        <option value="12.5">12.5 mm</option>
-                                        <option value="40">40 mm</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="placing_method" class="block text-sm font-medium text-gray-600">Placing Method</label>
-                                    <select id="placing_method" name="placing_method" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
-                                        <option value="manual_placing">Manual Placing</option>
-                                        <option value="chute_non_pumpable" selected>Chute (Non-Pumpable)</option>
-                                        <option value="pumping">Pumping</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- Exposure Condition -->
-                            <div>
-                                <label for="exposure" class="block text-sm font-medium text-gray-600">Exposure Condition (IS 456)</label>
-                                <select id="exposure" name="exposure" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
-                                    <option value="mild">Mild</option>
-                                    <option value="moderate">Moderate</option>
-                                    <option value="severe" selected>Severe</option>
-                                    <option value="very_severe">Very Severe</option>
-                                    <option value="extreme">Extreme</option>
-                                </select>
-                            </div>
-
-                            <!-- Superplasticizer Checkbox -->
-                            <div class="pt-2">
-                                <label class="flex items-center text-sm font-medium text-gray-600 cursor-pointer">
-                                    <input type="checkbox" id="use_superplasticizer" name="use_superplasticizer" checked class="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500">
-                                    <span class="ml-2">Use Superplasticizer (20% water reduction)</span>
-                                </label>
-                            </div>
                         </div>
                     </div>
-
+                    
                     <!-- Eco-Mix Replacements -->
                     <div class="mb-8 p-4 bg-green-50 rounded-lg border border-green-200">
                         <h3 class="text-xl font-medium text-green-700 mb-3">Eco-Mix SCM Replacements (Fraction of Cementitious Mass)</h3>
                         <p class="text-xs text-gray-500 mb-4">Total fraction should not exceed 0.9 (90%).</p>
 
-                        <!-- Two-Column Grid for SCMs -->
+                        <!-- SCM Specific Gravity Header -->
+                        <h4 class="text-sm font-semibold text-gray-600 mb-2">SCM Specific Gravity (SG)</h4>
+                        <div id="scm_sg_container" class="grid lg:grid-cols-2 gap-4 mb-4">
+                            <!-- Dynamic SCM SG inputs will be appended here -->
+                            <div class="lg:col-span-2 text-sm text-gray-500" id="scm_sg_placeholder">Enter SCM fractions > 0 below to set their Specific Gravity.</div>
+                        </div>
+
+                        <!-- Two-Column Grid for SCM Fractions -->
+                        <h4 class="text-sm font-semibold text-gray-600 mb-2 mt-4 pt-2 border-t">Replacement Fractions</h4>
                         <div class="grid lg:grid-cols-2 gap-4">
                             <!-- Column 1: Industrial Wastes -->
                             <div>
-                                <h4 class="text-sm font-semibold text-gray-600 mb-2">Industrial Wastes</h4>
+                                <h4 class="text-sm font-medium text-gray-700 mb-2">Industrial Wastes</h4>
                                 <div class="space-y-4">
                                     <!-- GGBS -->
-                                    <div>
+                                    <div class="scm-input" data-scm-key="ggbs">
                                         <label for="ggbs_frac" class="block text-sm font-medium text-gray-600">GGBS Fraction (Max 0.9)</label>
                                         <input type="number" id="ggbs_frac" name="ggbs_frac" value="0.4" step="0.01" min="0" max="0.9" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
                                     </div>
 
                                     <!-- Flyash -->
-                                    <div>
+                                    <div class="scm-input" data-scm-key="flyash">
                                         <label for="flyash_frac" class="block text-sm font-medium text-gray-600">Flyash Fraction (Max 0.6)</label>
                                         <input type="number" id="flyash_frac" name="flyash_frac" value="0.0" step="0.01" min="0" max="0.6" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
                                     </div>
 
                                     <!-- Metakaolin -->
-                                    <div>
+                                    <div class="scm-input" data-scm-key="metakaolin">
                                         <label for="metakaolin_frac" class="block text-sm font-medium text-gray-600">Metakaolin Fraction (Max 0.1)</label>
                                         <input type="number" id="metakaolin_frac" name="metakaolin_frac" value="0.0" step="0.01" min="0" max="0.1" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
                                     </div>
                                     
                                     <!-- Silica Fume -->
-                                    <div>
+                                    <div class="scm-input" data-scm-key="silicafume">
                                         <label for="silica_fume_frac" class="block text-sm font-medium text-gray-600">Silica Fume Fraction (Max 0.1)</label>
                                         <input type="number" id="silica_fume_frac" name="silica_fume_frac" value="0.0" step="0.01" min="0" max="0.1" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
                                     </div>
@@ -179,16 +227,16 @@
 
                             <!-- Column 2: Agricultural Wastes -->
                             <div>
-                                <h4 class="text-sm font-semibold text-gray-600 mb-2">Agricultural Wastes</h4>
+                                <h4 class="text-sm font-medium text-gray-700 mb-2">Agricultural Wastes</h4>
                                 <div class="space-y-4">
                                     <!-- RHA -->
-                                    <div>
+                                    <div class="scm-input" data-scm-key="rha">
                                         <label for="rice_husk_ash_frac" class="block text-sm font-medium text-gray-600">Rice Husk Ash (RHA) Fraction (Max 0.3)</label>
                                         <input type="number" id="rice_husk_ash_frac" name="rice_husk_ash_frac" value="0.0" step="0.01" min="0" max="0.3" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
                                     </div>
                                     
                                     <!-- Sugarcane Ash -->
-                                    <div>
+                                    <div class="scm-input" data-scm-key="sugarcane_ash">
                                         <label for="sugarcane_ash_frac" class="block text-sm font-medium text-gray-600">Sugarcane Ash Fraction (Max 0.2)</label>
                                         <input type="number" id="sugarcane_ash_frac" name="sugarcane_ash_frac" value="0.0" step="0.01" min="0" max="0.2" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
                                     </div>
@@ -370,9 +418,22 @@
             const loadingSpinner = document.getElementById('loading-spinner');
             const cementTypeSelect = document.getElementById('cement_type');
             const cementGradeContainer = document.getElementById('cement_grade_container');
+            const scmInputContainer = document.getElementById('scm_sg_container');
+            const scmFractionInputs = document.querySelectorAll('.scm-input input[type="number"]');
+            const scmSgPlaceholder = document.getElementById('scm_sg_placeholder');
 
             // API_BASE_URL is hardcoded to ensure connection to local running server
             const API_BASE_URL = 'http://127.0.0.1:8000/api/design/compare';
+
+            // Default SCM Specific Gravities (used if user doesn't specify)
+            const DEFAULT_SCM_SG = {
+                'ggbs': 2.90,
+                'flyash': 2.30,
+                'metakaolin': 2.50,
+                'silicafume': 2.20,
+                'rha': 2.10,
+                'sugarcane_ash': 2.00,
+            };
 
             // --- UI Helper Functions ---
 
@@ -387,6 +448,38 @@
                     document.getElementById('cement_grade').removeAttribute('required');
                 }
             };
+
+            const generateScmSgInputs = () => {
+                const activeScms = [];
+                scmFractionInputs.forEach(input => {
+                    const frac = parseFloat(input.value);
+                    if (frac > 0) {
+                        const key = input.closest('.scm-input').getAttribute('data-scm-key');
+                        activeScms.push(key);
+                    }
+                });
+
+                scmInputContainer.innerHTML = '';
+
+                if (activeScms.length === 0) {
+                    scmInputContainer.appendChild(scmSgPlaceholder);
+                    return;
+                }
+
+                activeScms.forEach(key => {
+                    const labelText = key.replace(/([A-Z])/g, ' $1').toUpperCase();
+                    const defaultValue = DEFAULT_SCM_SG[key] || 2.70;
+
+                    const div = document.createElement('div');
+                    div.innerHTML = `
+                        <label for="sg_${key}" class="block text-sm font-medium text-gray-600">${labelText} (SG)</label>
+                        <input type="number" id="sg_${key}" name="sg_${key}" value="${defaultValue}" step="0.01" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                    `;
+                    scmInputContainer.appendChild(div);
+                });
+                scmInputContainer.style.gridTemplateColumns = activeScms.length > 1 ? 'repeat(2, minmax(150px, 1fr))' : '1fr';
+            };
+
 
             const showMessage = (type, message) => {
                 messageBox.classList.remove('hidden', 'bg-red-100', 'bg-green-100');
@@ -495,6 +588,14 @@
                 const standardCementGrade = standardCementType === 'OPC' ? parseInt(formData.get('cement_grade')) : 0;
                 const placingMethod = formData.get('placing_method');
                 
+                // Collect SCM Specific Gravities dynamically
+                const ecoSgData = {};
+                scmInputContainer.querySelectorAll('input[type="number"]').forEach(input => {
+                    const key = input.name.replace('sg_', '');
+                    ecoSgData[key] = parseFloat(input.value);
+                });
+
+
                 const payload = {
                     standard: {
                         fck_mpa: parseFloat(formData.get('fck_mpa')),
@@ -506,6 +607,13 @@
                         cement_type: standardCementType,
                         cement_grade: standardCementGrade,
                         placing_method: placingMethod,
+                        
+                        // Material properties (SG and WA)
+                        sg_cement: parseFloat(formData.get('sg_cement')),
+                        sg_coarse: parseFloat(formData.get('sg_coarse')),
+                        sg_fine: parseFloat(formData.get('sg_fine')),
+                        wa_coarse: parseFloat(formData.get('wa_coarse')),
+                        wa_fine: parseFloat(formData.get('wa_fine')),
                     },
                     eco: {
                         fck_mpa: parseFloat(formData.get('fck_mpa')),
@@ -518,15 +626,45 @@
                         cement_grade: standardCementGrade,
                         placing_method: placingMethod,
                         
-                        // Eco Mix SCMs
+                        // Material properties (SG and WA)
+                        sg_cement: parseFloat(formData.get('sg_cement')),
+                        sg_coarse: parseFloat(formData.get('sg_coarse')),
+                        sg_fine: parseFloat(formData.get('sg_fine')),
+                        wa_coarse: parseFloat(formData.get('wa_coarse')),
+                        wa_fine: parseFloat(formData.get('wa_fine')),
+                        
+                        // Eco Mix SCMs and their dynamic SGs
                         ggbs_frac: parseFloat(formData.get('ggbs_frac') || 0.0),
                         flyash_frac: parseFloat(formData.get('flyash_frac') || 0.0),
                         silica_fume_frac: parseFloat(formData.get('silica_fume_frac') || 0.0),
                         rice_husk_ash_frac: parseFloat(formData.get('rice_husk_ash_frac') || 0.0),
                         metakaolin_frac: parseFloat(formData.get('metakaolin_frac') || 0.0),
                         sugarcane_ash_frac: parseFloat(formData.get('sugarcane_ash_frac') || 0.0),
+                        
+                        // Pass dynamic SCM SGs
+                        scm_sg: ecoSgData
                     }
                 };
+                
+                // If any SCM specific gravity data is missing for active SCMs, show error
+                let missingSg = false;
+                if (payload.eco.scm_sg) {
+                    for (const key of Object.keys(payload.eco.scm_sg)) {
+                         // Check if the corresponding fraction is > 0 and SG value is missing or 0
+                        const fracField = `${key}_frac`;
+                        if (payload.eco[fracField] > 0 && (!payload.eco.scm_sg[key] || payload.eco.scm_sg[key] <= 0)) {
+                             missingSg = true;
+                             break;
+                        }
+                    }
+                }
+
+                if (missingSg) {
+                    showMessage('error', 'Please enter Specific Gravity for all active SCMs.');
+                    loadingSpinner.classList.add('hidden');
+                    compareButton.disabled = false;
+                    return;
+                }
 
                 try {
                     const response = await fetch(API_BASE_URL, {
@@ -557,9 +695,15 @@
                 }
             });
 
-            // --- Initial Setup ---
+            // --- Initial Setup and Listeners ---
             cementTypeSelect.addEventListener('change', updateCementGradeVisibility);
             updateCementGradeVisibility();
+            
+            // Listen to SCM fraction changes to update SG inputs
+            scmFractionInputs.forEach(input => {
+                input.addEventListener('input', generateScmSgInputs);
+            });
+            generateScmSgInputs();
         });
     </script>
 </body>
