@@ -553,8 +553,9 @@
             const scmSgPlaceholder = document.getElementById('scm_sg_placeholder');
 
             // API_BASE_URL is hardcoded to ensure connection to local running server
-            const API_BASE_URL = 'http://127.0.0.1:8000/api/design/compare';
-            const STRENGTH_CURVE_API = 'http://127.0.0.1:8000/api/plot/strength_curve';
+            const API_ROOT_URL = 'https://eco-cement-mix-calculator-2.onrender.com';
+            const API_BASE_URL = API_ROOT_URL + '/api/design/compare';
+            const STRENGTH_CURVE_API = API_ROOT_URL + '/api/plot/strength_curve';
 
             // Default SCM Specific Gravities (used if user doesn't specify)
             const DEFAULT_SCM_SG = {
