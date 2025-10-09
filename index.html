@@ -29,6 +29,7 @@
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 1.5rem;
         }
+        /* Remove custom gauge styling as it is replaced by Chart.js */
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans antialiased">
@@ -476,13 +477,30 @@
 
                     <!-- Plot Container -->
                     <div class="grid md:grid-cols-2 gap-6 mt-8">
-                        <div class="p-4 border rounded-xl shadow-inner bg-gray-50">
-                            <h3 class="text-lg font-semibold text-gray-700 mb-3 text-center">Environmental Comparison (CO₂ per m³)</h3>
-                            <canvas id="co2Chart"></canvas>
+                        <!-- Strength Curve Plot -->
+                        <div class="p-4 border rounded-2xl shadow-xl bg-white">
+                            <h3 class="text-lg font-semibold text-gray-700 mb-3 text-center">Simulated Strength vs. Replacement %</h3>
+                            <canvas id="strengthCurveChart"></canvas>
                         </div>
-                        <div class="p-4 border rounded-xl shadow-inner bg-gray-50">
-                            <h3 class="text-lg font-semibold text-gray-700 mb-3 text-center">Cementitious Mass Breakdown (kg/m³)</h3>
-                            <canvas id="binderChart"></canvas>
+                        
+                        <!-- CO2 Emission Plot -->
+                        <div class="p-4 border rounded-2xl shadow-xl bg-white">
+                            <h3 class="text-lg font-semibold text-gray-700 mb-3 text-center">CO₂ Emissions Comparison (kg/m³)</h3>
+                            <canvas id="co2ComparisonChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Gauge Meter Row (Centered) -->
+                    <div class="flex justify-center mt-6">
+                        <div class="p-4 border rounded-2xl shadow-xl bg-white text-center flex flex-col items-center w-full max-w-sm">
+                            <h3 class="text-lg font-semibold text-gray-700 mb-3">Eco-Friendliness Score</h3>
+                            <div class="gauge-container">
+                                <div class="gauge-meter"></div>
+                                <div class="gauge-center-dot"></div>
+                                <div id="gauge-needle" class="gauge-needle" style="transform: rotate(180deg);"></div>
+                                <p id="gauge-score-value" class="gauge-value text-3xl text-gray-800">0%</p>
+                            </div>
+                            <p id="gauge-label" class="mt-8 text-lg font-medium text-gray-600">Neutral</p>
                         </div>
                     </div>
                 </div>
@@ -504,14 +522,12 @@
 
     <script>
         // Global chart instances
+        let strengthCurveChartInstance = null;
         let co2ChartInstance = null;
-        let binderChartInstance = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('design-form');
             const messageBox = document.getElementById('message-box');
-            const messageText = document.getElementById('message-text');
-            const messageIcon = document.getElementById('message-icon');
             const compareButton = document.getElementById('compare-button');
             const loadingSpinner = document.getElementById('loading-spinner');
             const cementTypeSelect = document.getElementById('cement_type');
@@ -522,6 +538,7 @@
 
             // API_BASE_URL is hardcoded to ensure connection to local running server
             const API_BASE_URL = 'http://127.0.0.1:8000/api/design/compare';
+            const STRENGTH_CURVE_API = 'http://127.0.0.1:8000/api/plot/strength_curve';
 
             // Default SCM Specific Gravities (used if user doesn't specify)
             const DEFAULT_SCM_SG = {
@@ -533,11 +550,145 @@
                 'sugarcane_ash': 2.00,
             };
 
-            // --- UI Helper Functions ---
+            // --- Chart & Gauge Functions ---
+
+            const renderGaugeMeter = (score) => {
+                const needle = document.getElementById('gauge-needle');
+                const scoreValueEl = document.getElementById('gauge-score-value');
+                const labelEl = document.getElementById('gauge-label');
+                
+                // Score 0 maps to 180deg (left/red), Score 100 maps to 0deg (right/green).
+                // Formula: angle = 180 - (score * 1.8)
+                const angle = 180 - (score * 1.8); 
+                needle.style.transform = `rotate(${angle}deg)`;
+                scoreValueEl.textContent = `${score.toFixed(0)}%`;
+
+                let label, color;
+                if (score < 40) {
+                    label = 'Low Eco Benefit';
+                    color = '#dc2626'; // Red-600
+                } else if (score < 65) {
+                    label = 'Moderate Eco Benefit';
+                    color = '#fb923c'; // Orange-500
+                } else {
+                    label = 'High Eco Benefit';
+                    color = '#10b981'; // Emerald-600
+                }
+
+                labelEl.textContent = label;
+                labelEl.style.color = color;
+            };
+
+            const renderCO2ComparisonChart = (data) => {
+                if (co2ChartInstance) co2ChartInstance.destroy();
+                
+                const co2Data = [
+                    data.standard.co2.co2_eco_kg_per_m3,
+                    data.eco.co2.co2_eco_kg_per_m3
+                ];
+                
+                const ctx = document.getElementById('co2ComparisonChart').getContext('2d');
+                co2ChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Standard Mix', 'Eco Mix'],
+                        datasets: [{
+                            label: 'CO₂ Emissions (kg/m³)',
+                            data: co2Data,
+                            backgroundColor: ['#9ca3af', '#10b981'], // Gray for Std, Green for Eco
+                            borderRadius: 6,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'kg CO₂ per m³'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { mode: 'index' }
+                        }
+                    }
+                });
+            };
+
+            const renderStrengthCurve = async (payload) => {
+                if (window.strengthCurveChartInstance) window.strengthCurveChartInstance.destroy();
+                
+                try {
+                    const response = await fetch(STRENGTH_CURVE_API, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    if (!response.ok) throw new Error("Failed to fetch strength simulation curve.");
+
+                    const plotData = await response.json();
+                    
+                    const labels = plotData.map(p => `${p.replacement_pct.toFixed(0)}%`);
+                    const strengthData = plotData.map(p => p.predicted_strength_mpa);
+                    const isTarget = plotData[0].is_target_strength; 
+
+                    const ctx = document.getElementById('strengthCurveChart').getContext('2d');
+
+                    window.strengthCurveChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    label: 'Predicted 28D Strength (MPa)',
+                                    data: strengthData,
+                                    borderColor: '#059669', // Emerald
+                                    borderWidth: 3,
+                                    fill: false,
+                                    tension: 0.3,
+                                },
+                                {
+                                    label: 'Required Target Strength',
+                                    data: Array(labels.length).fill(isTarget),
+                                    borderColor: '#ef4444', // Red (Danger)
+                                    borderWidth: 1.5,
+                                    borderDash: [5, 5],
+                                    fill: false,
+                                    pointRadius: 0
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                x: {
+                                    title: { display: true, text: 'SCM Replacement Percentage' }
+                                },
+                                y: {
+                                    beginAtZero: false,
+                                    title: { display: true, text: 'Strength (MPa)' }
+                                }
+                            },
+                            plugins: {
+                                legend: { position: 'top' },
+                                tooltip: { mode: 'index', intersect: false }
+                            }
+                        }
+                    });
+
+                } catch (e) {
+                    console.error("Error drawing strength curve:", e);
+                }
+            };
+
+
+            // --- Standard UI Functions ---
 
             const updateCementGradeVisibility = () => {
                 const selectedType = cementTypeSelect.value;
-                // Only show grade for OPC. Blended cements (PPC, PSC) are defined by composition.
                 if (selectedType === 'OPC') {
                     cementGradeContainer.style.display = 'block';
                     document.getElementById('cement_grade').setAttribute('required', 'required');
@@ -578,15 +729,17 @@
                 scmInputContainer.style.gridTemplateColumns = activeScms.length > 1 ? 'repeat(2, minmax(150px, 1fr))' : '1fr';
             };
 
-
             const showMessage = (type, message) => {
+                const messageIcon = document.getElementById('message-icon');
+                const messageText = document.getElementById('message-text');
+
                 messageBox.classList.remove('hidden', 'bg-red-100', 'bg-green-100');
                 messageBox.classList.add(type === 'error' ? 'bg-red-100' : 'bg-green-100');
                 
                 messageIcon.innerHTML = type === 'error' 
                     ? `<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>`
                     : `<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>`;
-                
+            
                 messageText.textContent = message;
             };
             
@@ -608,120 +761,12 @@
                     ecoEl.textContent = formatValue(ecoValue) + ' kg';
                 }
                 if (rowEl) {
-                    // Show row if it has any significant non-zero value
                     if (stdValue > 0.1 || ecoValue > 0.1) {
                         rowEl.classList.remove('hidden');
                     } else {
                         rowEl.classList.add('hidden');
                     }
                 }
-            };
-
-            const renderCharts = (data) => {
-                const labels = ['Standard Mix', 'Eco Mix'];
-                const stdMasses = data.standard.mix_masses_kg_per_m3;
-                const ecoMasses = data.eco.mix_masses_kg_per_m3;
-                const scmKeys = ['ggbs', 'flyash', 'metakaolin', 'silicafume', 'rha', 'sugarcane_ash'];
-                
-                // 1. Environmental Comparison (CO2)
-                const co2Data = [
-                    data.standard.co2.co2_eco_kg_per_m3,
-                    data.eco.co2.co2_eco_kg_per_m3
-                ];
-                
-                if (co2ChartInstance) co2ChartInstance.destroy();
-                const co2Ctx = document.getElementById('co2Chart').getContext('2d');
-                co2ChartInstance = new Chart(co2Ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'CO₂ Emissions (kg/m³)',
-                            data: co2Data,
-                            backgroundColor: ['#f87171', '#34d399'], // Red for Standard, Green for Eco
-                            borderRadius: 6,
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: 'kg CO₂ per m³'
-                                }
-                            }
-                        },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: { mode: 'index' }
-                        }
-                    }
-                });
-
-                // 2. Cementitious Mass Breakdown (Stacked Bar)
-                let binderLabels = ['Cement'];
-                let stdData = [stdMasses.cement_actual];
-                let ecoData = [ecoMasses.cement_actual];
-                
-                let scmColors = ['#fde047', '#38bdf8', '#818cf8', '#fb923c', '#a78bfa', '#f472b6'];
-                let scmDatasets = [];
-                let colorIndex = 0;
-
-                // Process SCMs for the chart
-                scmKeys.forEach(key => {
-                    const stdScmMass = stdMasses[key] || 0;
-                    const ecoScmMass = ecoMasses[key] || 0;
-
-                    if (stdScmMass > 0.1 || ecoScmMass > 0.1) {
-                        scmDatasets.push({
-                            label: key.toUpperCase().replace('_', ' '),
-                            data: [ecoScmMass, stdScmMass], // Chartjs handles data order slightly differently for stacking
-                            backgroundColor: scmColors[colorIndex % scmColors.length],
-                        });
-                        colorIndex++;
-                    }
-                });
-
-                // Add Cement dataset last (or first, depending on desired stack order)
-                const cementDataset = {
-                    label: 'Cement (OPC)',
-                    data: [ecoMasses.cement_actual, stdMasses.cement_actual],
-                    backgroundColor: '#1f2937', // Dark gray for cement
-                };
-                scmDatasets.unshift(cementDataset);
-                
-                if (binderChartInstance) binderChartInstance.destroy();
-                const binderCtx = document.getElementById('binderChart').getContext('2d');
-                binderChartInstance = new Chart(binderCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: scmDatasets.reverse() // Reverse so OPC is at the bottom/base
-                    },
-                    options: {
-                        indexAxis: 'y',
-                        responsive: true,
-                        scales: {
-                            x: {
-                                stacked: true,
-                                title: {
-                                    display: true,
-                                    text: 'Mass (kg/m³)'
-                                }
-                            },
-                            y: {
-                                stacked: true,
-                                grid: { display: false }
-                            }
-                        },
-                        plugins: {
-                            legend: { position: 'bottom' },
-                            tooltip: { mode: 'index', intersect: false }
-                        }
-                    }
-                });
             };
             
 
@@ -750,7 +795,6 @@
                 document.getElementById('std_durability').textContent = formatValue(data.standard.predictions.durability_index_0_100);
                 document.getElementById('eco_durability').textContent = formatValue(data.eco.predictions.durability_index_0_100);
 
-
                 // --- 3. Update Mix Masses (Per 1 m³) ---
                 document.getElementById('std_cement').textContent = formatValue(data.standard.mix_masses_kg_per_m3.cement_actual) + ' kg';
                 document.getElementById('eco_cement').textContent = formatValue(data.eco.mix_masses_kg_per_m3.cement_actual) + ' kg';
@@ -766,15 +810,12 @@
                     const [scmName, rowId, stdId, ecoId] = scmMap[key];
                     const row = document.getElementById(rowId);
                     
-                    // Standard mix should always show 0 for SCMs
                     const stdValue = data.standard.mix_masses_kg_per_m3[key] || 0.00;
                     document.getElementById(stdId).textContent = formatValue(stdValue) + ' kg';
 
-                    // Eco mix shows actual value
                     const ecoValue = data.eco.mix_masses_kg_per_m3[key] || 0.00;
                     document.getElementById(ecoId).textContent = formatValue(ecoValue) + ' kg';
 
-                    // Hide rows where SCM is not used in either mix
                     if (stdValue > 0.01 || ecoValue > 0.01) {
                         row.classList.remove('hidden');
                     } else {
@@ -795,7 +836,7 @@
                 // SCM Materials
                 Object.keys(scmMap).forEach(key => {
                     renderProjectRow(key, 
-                        stdProj[key] || 0, // Should be 0 for standard mix
+                        stdProj[key] || 0,
                         ecoProj[key] || 0
                     );
                 });
@@ -818,8 +859,20 @@
                     warningsContainer.classList.add('hidden');
                 }
 
-                // --- 7. Render Charts ---
-                renderCharts(data);
+                // --- 7. Render Charts & Gauge ---
+                renderGaugeMeter(data.eco.predictions.eco_friendliness_score);
+                renderCO2ComparisonChart(data);
+                
+                // Prepare payload for strength curve simulation
+                const strengthCurvePayload = {
+                    fck_mpa: data.eco.inputs.fck_mpa,
+                    cement_type: data.eco.inputs.cement_type,
+                    cement_grade: data.eco.inputs.cement_grade,
+                    w_c_ratio: data.eco.inputs.w_c_ratio,
+                    // Pass current SCM SGs for accurate volume/w/c simulation logic
+                    replacements: data.eco.inputs.scm_sg 
+                };
+                renderStrengthCurve(strengthCurvePayload);
 
                 document.getElementById('results-container').classList.remove('hidden');
             };
@@ -828,9 +881,7 @@
 
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                messageBox.classList.add('hidden');
-                loadingSpinner.classList.remove('hidden');
-                compareButton.disabled = true;
+                showMessage('info', 'Calculating mix designs...');
 
                 const formData = new FormData(form);
                 const standardCementType = formData.get('cement_type');
@@ -944,8 +995,9 @@
                     document.getElementById('warnings-container').classList.add('hidden');
                     
                     // Destroy charts on error
+                    if (window.strengthCurveChartInstance) window.strengthCurveChartInstance.destroy();
                     if (co2ChartInstance) co2ChartInstance.destroy();
-                    if (binderChartInstance) binderChartInstance.destroy();
+                    renderGaugeMeter(0); // Reset gauge on error
                 } finally {
                     loadingSpinner.classList.add('hidden');
                     compareButton.disabled = false;
@@ -961,6 +1013,9 @@
                 input.addEventListener('input', generateScmSgInputs);
             });
             generateScmSgInputs();
+            
+            // Initial Gauge Render
+            renderGaugeMeter(0);
         });
     </script>
 </body>

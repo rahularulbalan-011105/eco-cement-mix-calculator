@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, confloat
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from math import pow
 import uvicorn
 
@@ -61,6 +61,12 @@ def get_standard_deviation(fck_mpa: float) -> float:
         return 4.0
     return 3.5 # For M20 and below
 
+# Strength Drop Factor for plotting (Hypothetical, for visualization only)
+def get_strength_drop_factor(replacement_fraction: float) -> float:
+    # This simulates a conservative strength loss based on a simplified exponential decay
+    return 1.0 - (0.5 * pow(replacement_fraction, 1.5))
+
+
 # -------------------------
 # Helper functions
 # -------------------------
@@ -103,6 +109,19 @@ def predict_strength_adjusted(fck_target: float, cement_type: str, cement_grade:
 
     return predicted_strength
 
+def calculate_eco_score(co2_reduction_pct: float, durability_index: float) -> float:
+    """
+    Heuristic score (0-100) based on environmental (CO2) and performance (durability).
+    Weights: CO2 Reduction (70%), Durability (30%).
+    """
+    # Normalize CO2 reduction (Max possible reduction is roughly 60% with current limits)
+    normalized_co2 = min(co2_reduction_pct / 60.0, 1.0) * 100.0
+    
+    eco_score = (normalized_co2 * 0.70) + (durability_index * 0.30)
+    
+    return round(max(0, min(eco_score, 100.0)))
+
+
 def compute_mix_from_inputs(
     fck_mpa: float,
     w_c_ratio: float,
@@ -115,21 +134,18 @@ def compute_mix_from_inputs(
     cement_grade: int,
     placing_method: str,
     
-    # NEW MATERIAL INPUTS
     sg_cement: float,
     sg_coarse: float,
     sg_fine: float,
     wa_coarse: float,
     wa_fine: float,
-    scm_sg: Optional[Dict[str, float]] = None, # Dynamic SCM Specific Gravity
+    scm_sg: Optional[Dict[str, float]] = None,
     
-    # PROJECT INPUTS
     project_volume_m3: float = 1.0,
     wastage_pct: float = 0.0
 ):
     """
     Core IS10262-driven (simplified) calculation for one mix (per m3).
-    Also calculates total required material mass for project volume + wastage.
     """
     
     # 0) Consolidate Specific Gravities for calculation
@@ -139,16 +155,14 @@ def compute_mix_from_inputs(
         "fine": sg_fine,
         "water": 1.0
     }
-    # Add dynamic SCM specific gravities (use a default of 2.7 if not provided for an active SCM)
     SCM_SG = {k: v if v else 2.70 for k, v in (scm_sg or {}).items()}
-    # Use 2.7 as the default for volume calculation for any remaining SCMs
     default_scm_sg = 2.70
 
-    # Validate water table availability
+    # Validate inputs
     if max_agg_size_mm not in WATER_CONTENT_50MM:
         raise ValueError(f"Max aggregate size {max_agg_size_mm} not supported. Supported: {list(WATER_CONTENT_50MM.keys())}")
     
-    # 0.1) Slump Placability Check (for warning, not changing the calculation)
+    # 0.1) Slump Placability Check (for warning)
     min_slump, max_slump = PLACING_SLUMP_RANGES.get(placing_method, (50, 150))
     placability_warning = None
     if slump_mm < min_slump:
@@ -159,10 +173,8 @@ def compute_mix_from_inputs(
     # 1) preliminary w/c
     w_c = w_c_ratio
 
-    # 2) water content for 50 mm slump
+    # 2) water content calculation (steps 2, 3, 4)
     water_50mm = WATER_CONTENT_50MM[max_agg_size_mm]
-
-    # 3) slump adjustment
     delta_slump = slump_mm - 50.0
     correction_pct = (delta_slump / 25.0) * SLUMP_CORRECTION_PERCENT_PER_25MM
     water_required_mass = water_50mm * (1.0 + correction_pct / 100.0)
@@ -212,13 +224,11 @@ def compute_mix_from_inputs(
              
         cementitious_total_mass = cement_actual_mass / (1.0 - total_scm_fraction)
         
-        # Recalculate SCM masses based on the new, higher cementitious total
         scm_masses = {}
         for k, frac in replacements.items():
              scm_masses[k] = cementitious_total_mass * frac
         
-        # Recalculate water based on the original w/c ratio and the new, higher cementitious total
-        water_required_mass = cementitious_total_mass * w_c
+        water_required_mass = cementitious_total_mass * w_c # Recalculate water based on the original w/c ratio
 
     # 8) air fraction
     air_pct = AIR_CONTENT_PCT.get(max_agg_size_mm, 1.0)
@@ -250,7 +260,6 @@ def compute_mix_from_inputs(
     mass_coarse_ssd = coarse_vol * unit_mass * SG["coarse"]
     
     # 10.1) Water absorption correction (IS 10262)
-    # Water absorbed by aggregates from mix (mass_ssd * WA%)
     water_absorbed_coarse = mass_coarse_ssd * (wa_coarse / 100.0)
     water_absorbed_fine = mass_fine_ssd * (wa_fine / 100.0)
     
@@ -261,29 +270,20 @@ def compute_mix_from_inputs(
         warnings.append(f"Aggregate Water Absorption is high ({wa_coarse}% C.A, {wa_fine}% F.A). Free water requirement is negative. Check inputs.")
         final_free_water = 0.0
 
-    # Final masses for reporting (Aggregates are batched as SSD for volume calc, so mass is SSD mass)
     mass_fine = mass_fine_ssd
     mass_coarse = mass_coarse_ssd
     
     # 11) predicted strength (IS 10262 based)
     predicted_fc_28 = predict_strength_adjusted(fck_mpa, cement_type, cement_grade)
 
-    # 12) co2 estimates (use final_free_water for eco mix)
+    # 12) co2 estimates
     ef = EMISSION_FACTORS
-    
-    # BASELINE: Pure OPC mix calculation (using the cementitious total mass)
     baseline_cement_total = cementitious_total_mass 
     co2_base = baseline_cement_total * ef["cement"] + final_free_water * ef["water"] + mass_fine * ef["sand"] + mass_coarse * ef["coarse"]
     
-    # ECO MIX: Calculation using actual cement and SCMs
     co2_eco = cement_actual_mass * ef["cement"] + final_free_water * ef["water"] + mass_fine * ef["sand"] + mass_coarse * ef["coarse"]
     for scmat, mass in scm_masses.items():
-        key = scmat.lower()
-        map_keys = {
-            "rha":"rha", "coconut_ash":"coconut_ash", "sugarcane_ash":"sugarcane_ash", 
-            "ggbs":"ggbs", "silicafume":"silicafume", "metakaolin":"metakaolin", "flyash":"flyash"
-        }
-        ef_key = map_keys.get(key, key)
+        ef_key = scmat.lower()
         sc_ef = ef.get(ef_key, 0.05)
         co2_eco += mass * sc_ef
 
@@ -300,7 +300,6 @@ def compute_mix_from_inputs(
     durability_index = max(20, min(100, durability_index))
     
     # 15) Mix Ratio (Cementitious: Fine Aggregate: Coarse Aggregate)
-    # Normalize by Cementitious Mass
     ratio_cementitious = cementitious_total_mass
     ratio_fine_agg = mass_fine
     ratio_coarse_agg = mass_coarse
@@ -323,7 +322,6 @@ def compute_mix_from_inputs(
         "fine_aggregate": round(mass_fine * project_factor, 2),
         "coarse_aggregate": round(mass_coarse * project_factor, 2),
         
-        # SCMs (include 0 values for consistency)
         **{k: round(v * project_factor, 2) for k, v in scm_masses.items()},
     }
 
@@ -339,10 +337,11 @@ def compute_mix_from_inputs(
             "air_pct": round(air_pct, 2)
         },
         "predictions": {
-            "mix_ratio": mix_ratio, # NEW OUTPUT
+            "mix_ratio": mix_ratio,
             "predicted_28d_strength_MPa": round(predicted_fc_28, 2),
             "workability_class": work_class,
-            "durability_index_0_100": round(durability_index, 1)
+            "durability_index_0_100": round(durability_index, 1),
+            "eco_friendliness_score": calculate_eco_score(co2_reduction_pct, durability_index)
         },
         "co2": {
             "co2_base_kg_per_m3": round(co2_base, 2),
@@ -363,6 +362,14 @@ def compute_mix_from_inputs(
 # -------------------------
 # FastAPI + Models
 # -------------------------
+class StrengthCurveInput(BaseModel):
+    fck_mpa: confloat(gt=0)
+    cement_type: str = Field("OPC")
+    cement_grade: int = Field(43)
+    w_c_ratio: confloat(gt=0)
+    replacements: Optional[Dict[str, confloat(gt=0)]] = Field(None)
+    
+
 class StandardInput(BaseModel):
     project_volume_m3: confloat(gt=0) = 1.0
     wastage_pct: confloat(ge=0) = 0.0
@@ -376,7 +383,6 @@ class StandardInput(BaseModel):
     use_superplasticizer: Optional[bool] = False
     placing_method: str = Field("manual_placing")
     
-    # NEW MATERIAL INPUTS
     sg_cement: confloat(gt=0)
     sg_coarse: confloat(gt=0)
     sg_fine: confloat(gt=0)
@@ -396,7 +402,6 @@ class EcoInput(BaseModel):
     use_superplasticizer: Optional[bool] = False
     placing_method: str = Field("manual_placing")
 
-    # NEW MATERIAL INPUTS
     sg_cement: confloat(gt=0)
     sg_coarse: confloat(gt=0)
     sg_fine: confloat(gt=0)
@@ -404,7 +409,6 @@ class EcoInput(BaseModel):
     wa_fine: confloat(ge=0)
     scm_sg: Optional[Dict[str, confloat(gt=0)]] = Field(None)
 
-    # SCM Replacements (fractions of cementitious mass)
     ggbs_frac: Optional[confloat(ge=0, le=1.0)] = 0.0
     flyash_frac: Optional[confloat(ge=0, le=1.0)] = 0.0
     silica_fume_frac: Optional[confloat(ge=0, le=1.0)] = 0.0
@@ -432,29 +436,16 @@ app.add_middleware(
 @app.post("/api/design/standard")
 def design_standard(payload: StandardInput):
     try:
-        replacements = {}
-        # Standard mix uses the specified cement and grade, no SCMs
         res = compute_mix_from_inputs(
-            fck_mpa=payload.fck_mpa,
-            w_c_ratio=float(payload.w_c_ratio),
-            slump_mm=float(payload.slump_mm),
-            max_agg_size_mm=payload.max_agg_size_mm,
-            replacements=replacements,
-            use_superplasticizer=payload.use_superplasticizer,
-            exposure=payload.exposure,
-            cement_type=payload.cement_type,
-            cement_grade=payload.cement_grade,
-            placing_method=payload.placing_method,
-            sg_cement=float(payload.sg_cement),
-            sg_coarse=float(payload.sg_coarse),
-            sg_fine=float(payload.sg_fine),
-            wa_coarse=float(payload.wa_coarse),
-            wa_fine=float(payload.wa_fine),
-            scm_sg={}, # No SCMs in standard mix
-            project_volume_m3=float(payload.project_volume_m3),
-            wastage_pct=float(payload.wastage_pct),
+            fck_mpa=payload.fck_mpa, w_c_ratio=float(payload.w_c_ratio), slump_mm=float(payload.slump_mm), max_agg_size_mm=payload.max_agg_size_mm,
+            replacements={}, use_superplasticizer=payload.use_superplasticizer, exposure=payload.exposure,
+            cement_type=payload.cement_type, cement_grade=payload.cement_grade, placing_method=payload.placing_method,
+            sg_cement=float(payload.sg_cement), sg_coarse=float(payload.sg_coarse), sg_fine=float(payload.sg_fine),
+            wa_coarse=float(payload.wa_coarse), wa_fine=float(payload.wa_fine), scm_sg={},
+            project_volume_m3=float(payload.project_volume_m3), wastage_pct=float(payload.wastage_pct),
         )
-        res["inputs"] = payload.dict()
+        # Echo inputs for frontend access
+        res["inputs"] = payload.dict() 
         return res
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -463,39 +454,24 @@ def design_standard(payload: StandardInput):
 def design_eco(payload: EcoInput):
     try:
         replacements = {
-            "ggbs": float(payload.ggbs_frac or 0.0),
-            "flyash": float(payload.flyash_frac or 0.0),
-            "silicafume": float(payload.silica_fume_frac or 0.0),
-            "rha": float(payload.rice_husk_ash_frac or 0.0),
-            "metakaolin": float(payload.metakaolin_frac or 0.0),
-            "sugarcane_ash": float(payload.sugarcane_ash_frac or 0.0),
+            "ggbs": float(payload.ggbs_frac or 0.0), "flyash": float(payload.flyash_frac or 0.0), "silicafume": float(payload.silica_fume_frac or 0.0),
+            "rha": float(payload.rice_husk_ash_frac or 0.0), "metakaolin": float(payload.metakaolin_frac or 0.0), "sugarcane_ash": float(payload.sugarcane_ash_frac or 0.0),
         }
-        # remove zero entries
         replacements = {k: v for k, v in replacements.items() if v and v > 0.0}
         
         if sum(replacements.values()) >= 0.9:
             raise HTTPException(status_code=400, detail="Total replacement fraction must be less than 0.9")
             
         res = compute_mix_from_inputs(
-            fck_mpa=payload.fck_mpa,
-            w_c_ratio=float(payload.w_c_ratio),
-            slump_mm=float(payload.slump_mm),
-            max_agg_size_mm=payload.max_agg_size_mm,
-            replacements=replacements,
-            use_superplasticizer=payload.use_superplasticizer,
-            exposure=payload.exposure,
-            cement_type=payload.cement_type,
-            cement_grade=payload.cement_grade,
-            placing_method=payload.placing_method,
-            sg_cement=float(payload.sg_cement),
-            sg_coarse=float(payload.sg_coarse),
-            sg_fine=float(payload.sg_fine),
-            wa_coarse=float(payload.wa_coarse),
-            wa_fine=float(payload.wa_fine),
+            fck_mpa=payload.fck_mpa, w_c_ratio=float(payload.w_c_ratio), slump_mm=float(payload.slump_mm), max_agg_size_mm=payload.max_agg_size_mm,
+            replacements=replacements, use_superplasticizer=payload.use_superplasticizer, exposure=payload.exposure,
+            cement_type=payload.cement_type, cement_grade=payload.cement_grade, placing_method=payload.placing_method,
+            sg_cement=float(payload.sg_cement), sg_coarse=float(payload.sg_coarse), sg_fine=float(payload.sg_fine),
+            wa_coarse=float(payload.wa_coarse), wa_fine=float(payload.wa_fine),
             scm_sg={k: float(v) for k, v in (payload.scm_sg or {}).items()},
-            project_volume_m3=float(payload.project_volume_m3),
-            wastage_pct=float(payload.wastage_pct),
+            project_volume_m3=float(payload.project_volume_m3), wastage_pct=float(payload.wastage_pct),
         )
+        # Echo inputs for frontend access
         res["inputs"] = payload.dict()
         return res
     except HTTPException:
@@ -509,14 +485,10 @@ def design_compare(payload: CompareInput):
         st = payload.standard
         eco = payload.eco
         
-        # 1. Prepare SCM replacements for Eco Mix
+        # Prepare SCM replacements for Eco Mix
         eco_replacements = {
-            "ggbs": float(eco.ggbs_frac or 0.0),
-            "flyash": float(eco.flyash_frac or 0.0),
-            "silicafume": float(eco.silica_fume_frac or 0.0),
-            "rha": float(eco.rice_husk_ash_frac or 0.0),
-            "metakaolin": float(eco.metakaolin_frac or 0.0),
-            "sugarcane_ash": float(eco.sugarcane_ash_frac or 0.0),
+            "ggbs": float(eco.ggbs_frac or 0.0), "flyash": float(eco.flyash_frac or 0.0), "silicafume": float(eco.silica_fume_frac or 0.0),
+            "rha": float(eco.rice_husk_ash_frac or 0.0), "metakaolin": float(eco.metakaolin_frac or 0.0), "sugarcane_ash": float(eco.sugarcane_ash_frac or 0.0),
         }
         eco_replacements = {k: v for k, v in eco_replacements.items() if v and v > 0.0}
         
@@ -524,54 +496,31 @@ def design_compare(payload: CompareInput):
 
         # 1.1 Calculate Standard Mix (No SCM replacements)
         res_standard = compute_mix_from_inputs(
-            fck_mpa=st.fck_mpa,
-            w_c_ratio=float(st.w_c_ratio),
-            slump_mm=float(st.slump_mm),
-            max_agg_size_mm=st.max_agg_size_mm,
-            replacements={}, 
-            use_superplasticizer=st.use_superplasticizer,
-            exposure=st.exposure,
-            cement_type=st.cement_type,
-            cement_grade=st.cement_grade,
-            placing_method=st.placing_method,
-            sg_cement=float(st.sg_cement),
-            sg_coarse=float(st.sg_coarse),
-            sg_fine=float(st.sg_fine),
-            wa_coarse=float(st.wa_coarse),
-            wa_fine=float(st.wa_fine),
-            scm_sg={},
-            project_volume_m3=float(st.project_volume_m3),
-            wastage_pct=float(st.wastage_pct),
+            fck_mpa=st.fck_mpa, w_c_ratio=float(st.w_c_ratio), slump_mm=float(st.slump_mm), max_agg_size_mm=st.max_agg_size_mm,
+            replacements={}, use_superplasticizer=st.use_superplasticizer, exposure=st.exposure,
+            cement_type=st.cement_type, cement_grade=st.cement_grade, placing_method=st.placing_method,
+            sg_cement=float(st.sg_cement), sg_coarse=float(st.sg_coarse), sg_fine=float(st.sg_fine),
+            wa_coarse=float(st.wa_coarse), wa_fine=float(st.wa_fine), scm_sg={},
+            project_volume_m3=float(st.project_volume_m3), wastage_pct=float(st.wastage_pct),
         )
+        res_standard["inputs"] = st.dict() # ECHO INPUTS
 
         # 1.2 Calculate Eco Mix
         res_eco = compute_mix_from_inputs(
-            fck_mpa=eco.fck_mpa,
-            w_c_ratio=float(eco.w_c_ratio),
-            slump_mm=float(eco.slump_mm),
-            max_agg_size_mm=eco.max_agg_size_mm,
-            replacements=eco_replacements,
-            use_superplasticizer=eco.use_superplasticizer,
-            exposure=eco.exposure,
-            cement_type=eco.cement_type,
-            cement_grade=eco.cement_grade,
-            placing_method=eco.placing_method,
-            sg_cement=float(eco.sg_cement),
-            sg_coarse=float(eco.sg_coarse),
-            sg_fine=float(eco.sg_fine),
-            wa_coarse=float(eco.wa_coarse),
-            wa_fine=float(eco.wa_fine),
-            scm_sg=scm_sg_data,
-            project_volume_m3=float(eco.project_volume_m3),
-            wastage_pct=float(eco.wastage_pct),
+            fck_mpa=eco.fck_mpa, w_c_ratio=float(eco.w_c_ratio), slump_mm=float(eco.slump_mm), max_agg_size_mm=eco.max_agg_size_mm,
+            replacements=eco_replacements, use_superplasticizer=eco.use_superplasticizer, exposure=eco.exposure,
+            cement_type=eco.cement_type, cement_grade=eco.cement_grade, placing_method=eco.placing_method,
+            sg_cement=float(eco.sg_cement), sg_coarse=float(eco.sg_coarse), sg_fine=float(eco.sg_fine),
+            wa_coarse=float(eco.wa_coarse), wa_fine=float(eco.wa_fine), scm_sg=scm_sg_data,
+            project_volume_m3=float(eco.project_volume_m3), wastage_pct=float(eco.wastage_pct),
         )
+        res_eco["inputs"] = eco.dict() # ECHO INPUTS
 
         # 3. Compute Comparisons
         co2_base = res_standard["co2"]["co2_base_kg_per_m3"]
         co2_eco = res_eco["co2"]["co2_eco_kg_per_m3"]
         co2_reduction_pct = round(((co2_base - co2_eco) / co2_base * 100.0) if co2_base > 0 else 0.0, 2)
         
-        # Cement Saving % is based on the actual OPC component mass
         cement_std = res_standard["mix_masses_kg_per_m3"]["cement_actual"]
         cement_eco = res_eco["mix_masses_kg_per_m3"]["cement_actual"]
         cement_saving_pct = round(((cement_std - cement_eco) / cement_std * 100.0) if cement_std > 0 else 0.0, 2)
@@ -587,6 +536,46 @@ def design_compare(payload: CompareInput):
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/plot/strength_curve", response_model=List[Dict])
+def get_strength_curve_data(payload: StrengthCurveInput):
+    """
+    Simulates strength vs. total SCM replacement percentage for visualization.
+    """
+    try:
+        # 1. Calculate the IS Target Strength (which remains constant across the plot)
+        is_target_strength = predict_strength_adjusted(
+            fck_target=payload.fck_mpa,
+            cement_type=payload.cement_type,
+            cement_grade=payload.cement_grade
+        )
+
+        # 2. Generate data points for 0% to 50% replacement
+        data_points = []
+        for p in range(0, 55, 5): # 0%, 5%, 10%, ..., 50%
+            replacement_fraction = p / 100.0
+            
+            # Use the hypothetical strength drop factor
+            drop_factor = get_strength_drop_factor(replacement_fraction)
+            
+            # The simulated strength is the baseline strength multiplied by the drop factor.
+            simulated_strength = is_target_strength * drop_factor
+            
+            # Ensure simulated strength never goes below fck
+            simulated_strength = max(payload.fck_mpa, simulated_strength)
+
+            data_points.append({
+                "replacement_pct": p,
+                "predicted_strength_mpa": round(simulated_strength, 2),
+                "is_target_strength": round(is_target_strength, 2)
+            })
+
+        return data_points
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error generating strength plot: {str(e)}")
+
 
 # Health check
 @app.get("/api/health")
