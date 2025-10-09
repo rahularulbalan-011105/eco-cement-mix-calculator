@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Load Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <!-- Load html2pdf.js for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         /* Custom scrollbar styling for better aesthetics */
         body::-webkit-scrollbar {
@@ -29,7 +31,11 @@
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 1.5rem;
         }
-        /* Remove custom gauge styling as it is replaced by Chart.js */
+        /* Style to ensure plots have space and are the correct size for the browser view */
+        .plot-container {
+            height: 350px; 
+            min-width: 300px;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans antialiased">
@@ -296,226 +302,234 @@
                 <!-- Detailed Comparison Table -->
                 <div id="results-container" class="bg-white p-6 rounded-2xl shadow-xl hidden">
                     <h2 class="text-2xl font-semibold text-gray-700 mb-6 border-b pb-3">Detailed Mix Comparison (Per 1 m³)</h2>
-
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">METRIC</th>
-                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">STANDARD MIX</th>
-                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ECO MIX</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200">
-                                
-                                <!-- Performance Header -->
-                                <tr>
-                                    <td colspan="3" class="px-6 py-2 text-sm font-bold text-gray-700 bg-gray-100 uppercase tracking-wider">Predicted Performance Metrics</td>
-                                </tr>
-                                
-                                <!-- Mix Ratio -->
-                                <tr class="hover:bg-blue-50/50 font-bold text-blue-700">
-                                    <td class="px-6 py-3 text-sm font-medium">Mix Ratio (C:FA:CA)</td>
-                                    <td id="std_mix_ratio" class="px-6 py-3 text-sm text-right"></td>
-                                    <td id="eco_mix_ratio" class="px-6 py-3 text-sm text-right"></td>
-                                </tr>
-
-                                <!-- Predicted Strength -->
-                                <tr class="hover:bg-green-50/50">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Predicted 28D Strength (MPa)</td>
-                                    <td id="std_strength" class="px-6 py-3 text-sm text-right font-semibold text-gray-700"></td>
-                                    <td id="eco_strength" class="px-6 py-3 text-sm text-right font-semibold text-green-600"></td>
-                                </tr>
-
-                                <!-- Estimated CO2 Emissions -->
-                                <tr class="hover:bg-red-50/50">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Estimated CO₂ Emissions (kg/m³)</td>
-                                    <td id="std_co2" class="px-6 py-3 text-sm text-right font-semibold text-gray-700"></td>
-                                    <td id="eco_co2" class="px-6 py-3 text-sm text-right font-semibold text-red-600"></td>
-                                </tr>
-                                
-                                <!-- Workability Class -->
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Workability Class</td>
-                                    <td id="std_workability" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="eco_workability" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                </tr>
-
-                                <!-- Durability Index -->
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Durability Index (0-100)</td>
-                                    <td id="std_durability" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="eco_durability" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                </tr>
-
-                                <!-- Mix Masses Header -->
-                                <tr>
-                                    <td colspan="3" class="px-6 py-2 text-sm font-bold text-gray-700 bg-gray-100 uppercase tracking-wider">Mix Masses (kg/m³)</td>
-                                </tr>
-
-                                <!-- Cement (Actual OPC) -->
-                                <tr class="hover:bg-yellow-50/50">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Cement (Actual OPC Component)</td>
-                                    <td id="std_cement" class="px-6 py-3 text-sm text-right font-medium text-gray-700"></td>
-                                    <td id="eco_cement" class="px-6 py-3 text-sm text-right font-medium text-gray-700"></td>
-                                </tr>
-                                
-                                <!-- Water -->
-                                <tr>
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Water</td>
-                                    <td id="std_water" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="eco_water" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                </tr>
-                                
-                                <!-- Fine Aggregate -->
-                                <tr>
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Fine Aggregate (Sand)</td>
-                                    <td id="std_fine_agg" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="eco_fine_agg" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                </tr>
-
-                                <!-- Coarse Aggregate -->
-                                <tr>
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Coarse Aggregate</td>
-                                    <td id="std_coarse_agg" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="eco_coarse_agg" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                </tr>
-
-                                <!-- SCMs (Dynamic Rows) -->
-                                <tr id="row_ggbs" class="hover:bg-gray-50 hidden">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">GGBS</td>
-                                    <td id="std_ggbs" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="eco_ggbs" class="px-6 py-3 text-sm text-right text-green-700"></td>
-                                </tr>
-                                <tr id="row_flyash" class="hover:bg-gray-50 hidden">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Flyash</td>
-                                    <td id="std_flyash" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="eco_flyash" class="px-6 py-3 text-sm text-right text-green-700"></td>
-                                </tr>
-                                <tr id="row_metakaolin" class="hover:bg-gray-50 hidden">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Metakaolin</td>
-                                    <td id="std_metakaolin" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="eco_metakaolin" class="px-6 py-3 text-sm text-right text-green-700"></td>
-                                </tr>
-                                <tr id="row_silicafume" class="hover:bg-gray-50 hidden">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Silica Fume</td>
-                                    <td id="std_silicafume" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="eco_silicafume" class="px-6 py-3 text-sm text-right text-green-700"></td>
-                                </tr>
-                                <tr id="row_rha" class="hover:bg-gray-50 hidden">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Rice Husk Ash (RHA)</td>
-                                    <td id="std_rha" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="eco_rha" class="px-6 py-3 text-sm text-right text-green-700"></td>
-                                </tr>
-                                <tr id="row_sugarcane_ash" class="hover:bg-gray-50 hidden">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Sugarcane Ash</td>
-                                    <td id="std_sugarcane_ash" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="eco_sugarcane_ash" class="px-6 py-3 text-sm text-right text-green-700"></td>
-                                </tr>
-                                
-                                <!-- Project Quantities Header -->
-                                <tr>
-                                    <td colspan="3" class="px-6 py-2 text-sm font-bold text-gray-700 bg-gray-100 uppercase tracking-wider">Project Material Requirements (kg)</td>
-                                </tr>
-
-                                <!-- Project Material Rows (Dynamically populated by JS) -->
-                                <tr id="project_row_cement" class="hover:bg-yellow-50/50">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Cement (Total)</td>
-                                    <td id="proj_cement_std" class="px-6 py-3 text-sm text-right font-medium text-gray-700"></td>
-                                    <td id="proj_cement_eco" class="px-6 py-3 text-sm text-right font-medium text-gray-700"></td>
-                                </tr>
-                                <tr id="project_row_water">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Water (Total)</td>
-                                    <td id="proj_water_std" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="proj_water_eco" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                </tr>
-                                <tr id="project_row_fine_agg">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Fine Aggregate (Total)</td>
-                                    <td id="proj_fine_agg_std" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="proj_fine_agg_eco" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                </tr>
-                                <tr id="project_row_coarse_agg">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Coarse Aggregate (Total)</td>
-                                    <td id="proj_coarse_agg_std" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="proj_coarse_agg_eco" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                </tr>
-                                
-                                <tr id="project_row_ggbs" class="hidden">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">GGBS (Total)</td>
-                                    <td id="proj_ggbs_std" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="proj_ggbs_eco" class="px-6 py-3 text-sm text-right text-green-700"></td>
-                                </tr>
-                                <tr id="project_row_flyash" class="hidden">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Flyash (Total)</td>
-                                    <td id="proj_flyash_std" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="proj_flyash_eco" class="px-6 py-3 text-sm text-right text-green-700"></td>
-                                </tr>
-                                <tr id="project_row_metakaolin" class="hidden">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Metakaolin (Total)</td>
-                                    <td id="proj_metakaolin_std" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="proj_metakaolin_eco" class="px-6 py-3 text-sm text-right text-green-700"></td>
-                                </tr>
-                                <tr id="project_row_silicafume" class="hidden">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Silica Fume (Total)</td>
-                                    <td id="proj_silicafume_std" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="proj_silicafume_eco" class="px-6 py-3 text-sm text-right text-green-700"></td>
-                                </tr>
-                                <tr id="project_row_rha" class="hidden">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Rice Husk Ash (RHA) (Total)</td>
-                                    <td id="proj_rha_std" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="proj_rha_eco" class="px-6 py-3 text-sm text-right text-green-700"></td>
-                                </tr>
-                                <tr id="project_row_sugarcane_ash" class="hidden">
-                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Sugarcane Ash (Total)</td>
-                                    <td id="proj_sugarcane_ash_std" class="px-6 py-3 text-sm text-right text-gray-700"></td>
-                                    <td id="proj_sugarcane_ash_eco" class="px-6 py-3 text-sm text-right text-green-700"></td>
-                                </tr>
-
-                            </tbody>
-                        </table>
+                    
+                    <div class="flex justify-end mb-4 no-print">
+                        <button id="download-pdf" class="bg-red-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-700 transition duration-150 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Download Report (PDF)
+                        </button>
                     </div>
 
-                    <!-- Plot Container -->
-                    <div class="grid md:grid-cols-2 gap-6 mt-8">
-                        <!-- Strength Curve Plot -->
-                        <div class="p-4 border rounded-2xl shadow-xl bg-white">
-                            <h3 class="text-lg font-semibold text-gray-700 mb-3 text-center">Simulated Strength vs. Replacement %</h3>
-                            <canvas id="strengthCurveChart"></canvas>
-                        </div>
-                        
-                        <!-- CO2 Emission Plot -->
-                        <div class="p-4 border rounded-2xl shadow-xl bg-white">
-                            <h3 class="text-lg font-semibold text-gray-700 mb-3 text-center">CO₂ Emissions Comparison (kg/m³)</h3>
-                            <canvas id="co2ComparisonChart"></canvas>
+                    <div id="pdf-export-content">
+                        <!-- All Tables (Exported to PDF) -->
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">METRIC</th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">STANDARD MIX</th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ECO MIX</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    
+                                    <!-- Performance Header -->
+                                    <tr>
+                                        <td colspan="3" class="px-6 py-2 text-sm font-bold text-gray-700 bg-gray-100 uppercase tracking-wider">Predicted Performance Metrics</td>
+                                    </tr>
+                                    
+                                    <!-- Mix Ratio -->
+                                    <tr class="hover:bg-blue-50/50 font-bold text-blue-700">
+                                        <td class="px-6 py-3 text-sm font-medium">Mix Ratio (C:FA:CA)</td>
+                                        <td id="std_mix_ratio" class="px-6 py-3 text-sm text-right"></td>
+                                        <td id="eco_mix_ratio" class="px-6 py-3 text-sm text-right"></td>
+                                    </tr>
+
+                                    <!-- Predicted Strength -->
+                                    <tr class="hover:bg-green-50/50">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Predicted 28D Strength (MPa)</td>
+                                        <td id="std_strength" class="px-6 py-3 text-sm text-right font-semibold text-gray-700"></td>
+                                        <td id="eco_strength" class="px-6 py-3 text-sm text-right font-semibold text-green-600"></td>
+                                    </tr>
+
+                                    <!-- Estimated CO2 Emissions -->
+                                    <tr class="hover:bg-red-50/50">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Estimated CO₂ Emissions (kg/m³)</td>
+                                        <td id="std_co2" class="px-6 py-3 text-sm text-right font-semibold text-gray-700"></td>
+                                        <td id="eco_co2" class="px-6 py-3 text-sm text-right font-semibold text-red-600"></td>
+                                    </tr>
+                                    
+                                    <!-- Workability Class -->
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Workability Class</td>
+                                        <td id="std_workability" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="eco_workability" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                    </tr>
+
+                                    <!-- Durability Index -->
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Durability Index (0-100)</td>
+                                        <td id="std_durability" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="eco_durability" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                    </tr>
+
+                                    <!-- Mix Masses Header -->
+                                    <tr>
+                                        <td colspan="3" class="px-6 py-2 text-sm font-bold text-gray-700 bg-gray-100 uppercase tracking-wider">Mix Masses (kg/m³)</td>
+                                    </tr>
+
+                                    <!-- Cement (Actual OPC) -->
+                                    <tr class="hover:bg-yellow-50/50">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Cement (Actual OPC Component)</td>
+                                        <td id="std_cement" class="px-6 py-3 text-sm text-right font-medium text-gray-700"></td>
+                                        <td id="eco_cement" class="px-6 py-3 text-sm text-right font-medium text-gray-700"></td>
+                                    </tr>
+                                    
+                                    <!-- Water -->
+                                    <tr>
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Water</td>
+                                        <td id="std_water" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="eco_water" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                    </tr>
+                                    
+                                    <!-- Fine Aggregate -->
+                                    <tr>
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Fine Aggregate (Sand)</td>
+                                        <td id="std_fine_agg" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="eco_fine_agg" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                    </tr>
+
+                                    <!-- Coarse Aggregate -->
+                                    <tr>
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Coarse Aggregate</td>
+                                        <td id="std_coarse_agg" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="eco_coarse_agg" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                    </tr>
+
+                                    <!-- SCMs (Dynamic Rows) -->
+                                    <tr id="row_ggbs" class="hover:bg-gray-50 hidden">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">GGBS</td>
+                                        <td id="std_ggbs" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="eco_ggbs" class="px-6 py-3 text-sm text-right text-green-700"></td>
+                                    </tr>
+                                    <tr id="row_flyash" class="hover:bg-gray-50 hidden">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Flyash</td>
+                                        <td id="std_flyash" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="eco_flyash" class="px-6 py-3 text-sm text-right text-green-700"></td>
+                                    </tr>
+                                    <tr id="row_metakaolin" class="hover:bg-gray-50 hidden">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Metakaolin</td>
+                                        <td id="std_metakaolin" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="eco_metakaolin" class="px-6 py-3 text-sm text-right text-green-700"></td>
+                                    </tr>
+                                    <tr id="row_silicafume" class="hover:bg-gray-50 hidden">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Silica Fume</td>
+                                        <td id="std_silicafume" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="eco_silicafume" class="px-6 py-3 text-sm text-right text-green-700"></td>
+                                    </tr>
+                                    <tr id="row_rha" class="hover:bg-gray-50 hidden">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Rice Husk Ash (RHA)</td>
+                                        <td id="std_rha" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="eco_rha" class="px-6 py-3 text-sm text-right text-green-700"></td>
+                                    </tr>
+                                    <tr id="row_sugarcane_ash" class="hover:bg-gray-50 hidden">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Sugarcane Ash</td>
+                                        <td id="std_sugarcane_ash" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="eco_sugarcane_ash" class="px-6 py-3 text-sm text-right text-green-700"></td>
+                                    </tr>
+                                    
+                                    <!-- Project Quantities Header -->
+                                    <tr>
+                                        <td colspan="3" class="px-6 py-2 text-sm font-bold text-gray-700 bg-gray-100 uppercase tracking-wider">Project Material Requirements (kg)</td>
+                                    </tr>
+
+                                    <!-- Project Material Rows (Dynamically populated by JS) -->
+                                    <tr id="project_row_cement" class="hover:bg-yellow-50/50">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Cement (Total)</td>
+                                        <td id="proj_cement_std" class="px-6 py-3 text-sm text-right font-medium text-gray-700"></td>
+                                        <td id="proj_cement_eco" class="px-6 py-3 text-sm text-right font-medium text-gray-700"></td>
+                                    </tr>
+                                    <tr id="project_row_water">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Water (Total)</td>
+                                        <td id="proj_water_std" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="proj_water_eco" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                    </tr>
+                                    <tr id="project_row_fine_agg">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Fine Aggregate (Total)</td>
+                                        <td id="proj_fine_agg_std" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="proj_fine_agg_eco" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                    </tr>
+                                    <tr id="project_row_coarse_agg">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Coarse Aggregate (Total)</td>
+                                        <td id="proj_coarse_agg_std" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="proj_coarse_agg_eco" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                    </tr>
+                                    
+                                    <tr id="project_row_ggbs" class="hidden">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">GGBS (Total)</td>
+                                        <td id="proj_ggbs_std" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="proj_ggbs_eco" class="px-6 py-3 text-sm text-right text-green-700"></td>
+                                    </tr>
+                                    <tr id="project_row_flyash" class="hidden">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Flyash (Total)</td>
+                                        <td id="proj_flyash_std" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="proj_flyash_eco" class="px-6 py-3 text-sm text-right text-green-700"></td>
+                                    </tr>
+                                    <tr id="project_row_metakaolin" class="hidden">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Metakaolin (Total)</td>
+                                        <td id="proj_metakaolin_std" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="proj_metakaolin_eco" class="px-6 py-3 text-sm text-right text-green-700"></td>
+                                    </tr>
+                                    <tr id="project_row_silicafume" class="hidden">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Silica Fume (Total)</td>
+                                        <td id="proj_silicafume_std" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="proj_silicafume_eco" class="px-6 py-3 text-sm text-right text-green-700"></td>
+                                    </tr>
+                                    <tr id="project_row_rha" class="hidden">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Rice Husk Ash (RHA) (Total)</td>
+                                        <td id="proj_rha_std" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="proj_rha_eco" class="px-6 py-3 text-sm text-right text-green-700"></td>
+                                    </tr>
+                                    <tr id="project_row_sugarcane_ash" class="hidden">
+                                        <td class="px-6 py-3 text-sm font-medium text-gray-900">Sugarcane Ash (Total)</td>
+                                        <td id="proj_sugarcane_ash_std" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                        <td id="proj_sugarcane_ash_eco" class="px-6 py-3 text-sm text-right text-green-700"></td>
+                                    </tr>
+
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-
-                    <!-- Gauge Meter Row (Centered) -->
-                    <div class="flex justify-center mt-6">
-                        <div class="p-4 border rounded-2xl shadow-xl bg-white text-center flex flex-col items-center w-full max-w-sm">
-                            <h3 class="text-lg font-semibold text-gray-700 mb-3">Eco-Friendliness Score</h3>
-                            <div class="gauge-container">
-                                <div class="gauge-meter"></div>
-                                <div class="gauge-center-dot"></div>
-                                <div id="gauge-needle" class="gauge-needle" style="transform: rotate(180deg);"></div>
-                                <p id="gauge-score-value" class="gauge-value text-3xl text-gray-800">0%</p>
+                    
+                    <!-- Plot Container (Not part of PDF export) -->
+                    <div class="no-print">
+                        <div class="grid md:grid-cols-2 gap-6 mt-8">
+                            <!-- Strength Curve Plot -->
+                            <div class="p-4 border rounded-2xl shadow-xl bg-white plot-container">
+                                <h3 class="text-lg font-semibold text-gray-700 mb-3 text-center">Simulated Strength vs. Replacement %</h3>
+                                <canvas id="strengthCurveChart"></canvas>
                             </div>
-                            <p id="gauge-label" class="mt-8 text-lg font-medium text-gray-600">Neutral</p>
+                            
+                            <!-- CO2 Emission Plot -->
+                            <div class="p-4 border rounded-2xl shadow-xl bg-white plot-container">
+                                <h3 class="text-lg font-semibold text-gray-700 mb-3 text-center">CO₂ Emissions Comparison (kg/m³)</h3>
+                                <canvas id="co2ComparisonChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Eco Score Horizontal Bar Plot (Replaces Gauge) -->
+                        <div class="flex justify-center mt-6">
+                            <div class="p-4 border rounded-2xl shadow-xl bg-white w-full max-w-2xl">
+                                <h3 class="text-lg font-semibold text-gray-700 mb-3 text-center">Eco-Friendliness Score (0-100)</h3>
+                                <div class="h-16">
+                                    <canvas id="ecoScoreChart"></canvas>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
                 
-                <!-- Warnings Section -->
-                <div id="warnings-container" class="mt-8 bg-yellow-50 p-5 rounded-2xl shadow-xl border border-yellow-300 hidden">
-                    <h3 class="text-lg font-semibold text-yellow-800 mb-3 flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.543 2.658-1.543 3.423 0L14.4 7.636l.894 1.788c.765 1.543-.362 3.256-1.923 3.256H6.629c-1.56 0-2.688-1.713-1.923-3.256l.894-1.788L8.257 3.099z" clip-rule="evenodd"></path></svg>
-                        Durability & Compliance Warnings
-                    </h3>
-                    <ul id="warnings-list" class="list-disc pl-5 space-y-2 text-sm text-yellow-700">
-                        <!-- Warnings dynamically inserted here -->
-                    </ul>
-                </div>
+                    <!-- Warnings Section -->
+                    <div id="warnings-container" class="mt-8 bg-yellow-50 p-5 rounded-2xl shadow-xl border border-yellow-300 hidden">
+                        <h3 class="text-lg font-semibold text-yellow-800 mb-3 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.543 2.658-1.543 3.423 0L14.4 7.636l.894 1.788c.765 1.543-.362 3.256-1.923 3.256H6.629c-1.56 0-2.688-1.713-1.923-3.256l.894-1.788L8.257 3.099z" clip-rule="evenodd"></path></svg>
+                            Durability & Compliance Warnings
+                        </h3>
+                        <ul id="warnings-list" class="list-disc pl-5 space-y-2 text-sm text-yellow-700">
+                            <!-- Warnings dynamically inserted here -->
+                        </ul>
+                    </div>
 
+                </div>
             </div>
         </div>
     </div>
@@ -524,10 +538,12 @@
         // Global chart instances
         let strengthCurveChartInstance = null;
         let co2ChartInstance = null;
+        let ecoScoreChartInstance = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('design-form');
             const messageBox = document.getElementById('message-box');
+            const downloadButton = document.getElementById('download-pdf'); // New
             const compareButton = document.getElementById('compare-button');
             const loadingSpinner = document.getElementById('loading-spinner');
             const cementTypeSelect = document.getElementById('cement_type');
@@ -552,31 +568,60 @@
 
             // --- Chart & Gauge Functions ---
 
-            const renderGaugeMeter = (score) => {
-                const needle = document.getElementById('gauge-needle');
-                const scoreValueEl = document.getElementById('gauge-score-value');
-                const labelEl = document.getElementById('gauge-label');
+            const getEcoColor = (score) => {
+                if (score < 40) return '#dc2626'; // Red
+                if (score < 65) return '#fb923c'; // Orange
+                return '#10b981'; // Green
+            };
+
+            const renderEcoScoreChart = (score) => {
+                if (ecoScoreChartInstance) ecoScoreChartInstance.destroy();
                 
-                // Score 0 maps to 180deg (left/red), Score 100 maps to 0deg (right/green).
-                // Formula: angle = 180 - (score * 1.8)
-                const angle = 180 - (score * 1.8); 
-                needle.style.transform = `rotate(${angle}deg)`;
-                scoreValueEl.textContent = `${score.toFixed(0)}%`;
+                const ctx = document.getElementById('ecoScoreChart').getContext('2d');
+                const backgroundColor = getEcoColor(score);
 
-                let label, color;
-                if (score < 40) {
-                    label = 'Low Eco Benefit';
-                    color = '#dc2626'; // Red-600
-                } else if (score < 65) {
-                    label = 'Moderate Eco Benefit';
-                    color = '#fb923c'; // Orange-500
-                } else {
-                    label = 'High Eco Benefit';
-                    color = '#10b981'; // Emerald-600
-                }
-
-                labelEl.textContent = label;
-                labelEl.style.color = color;
+                ecoScoreChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Eco-Friendliness'],
+                        datasets: [{
+                            label: 'Eco-Friendliness Score',
+                            data: [score],
+                            backgroundColor: backgroundColor,
+                            borderRadius: 4,
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: {
+                             padding: { right: 20 }
+                        },
+                        scales: {
+                            x: {
+                                min: 0,
+                                max: 100,
+                                grid: { display: false },
+                                ticks: { display: false }
+                            },
+                            y: {
+                                grid: { display: false },
+                                ticks: { display: false }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false },
+                            datalabels: { // Requires Chart.js Datalabels plugin
+                                color: '#1f2937',
+                                anchor: 'end',
+                                align: 'right',
+                                formatter: (value) => `${value.toFixed(0)}%`,
+                            }
+                        }
+                    }
+                });
             };
 
             const renderCO2ComparisonChart = (data) => {
@@ -859,8 +904,8 @@
                     warningsContainer.classList.add('hidden');
                 }
 
-                // --- 7. Render Charts & Gauge ---
-                renderGaugeMeter(data.eco.predictions.eco_friendliness_score);
+                // --- 7. Render Charts ---
+                renderEcoScoreChart(data.eco.predictions.eco_friendliness_score);
                 renderCO2ComparisonChart(data);
                 
                 // Prepare payload for strength curve simulation
@@ -876,6 +921,55 @@
 
                 document.getElementById('results-container').classList.remove('hidden');
             };
+
+            // --- PDF Generation Function ---
+            const generatePDF = () => {
+                // We target the main content wrapper excluding the charts/plots (which have separate elements)
+                const content = document.getElementById('pdf-export-content');
+                const filename = `EcoMix_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
+
+                // Clone the results container for manipulation
+                const pdfContent = content.cloneNode(true);
+
+                // Create and prepend the Project and Core Input Summary
+                const inputsDiv = document.createElement('div');
+                inputsDiv.innerHTML = `
+                    <h2 class="text-2xl font-bold mb-4">Mix Design Report</h2>
+                    <h3 class="text-xl font-bold mb-3">Input Summary</h3>
+                    <div class="grid grid-cols-3 gap-x-6 mb-4 text-gray-700">
+                        <div>
+                            <p class="font-semibold">Project:</p>
+                            <p>Volume: ${document.getElementById('project_volume_m3').value} m³</p>
+                            <p>Wastage: ${document.getElementById('wastage_pct').value}%</p>
+                        </div>
+                        <div>
+                            <p class="font-semibold">Core Mix:</p>
+                            <p>Strength: ${document.getElementById('fck_mpa').value} MPa</p>
+                            <p>W/C Ratio: ${document.getElementById('w_c_ratio').value}</p>
+                            <p>Slump: ${document.getElementById('slump_mm').value} mm</p>
+                        </div>
+                        <div>
+                            <p class="font-semibold">Materials:</p>
+                            <p>Cement: ${document.getElementById('cement_type').value}</p>
+                            <p>Exposure: ${document.getElementById('exposure').value}</p>
+                        </div>
+                    </div>
+                    <hr class="mt-4">
+                `;
+                pdfContent.prepend(inputsDiv);
+                
+                // Export using html2pdf
+                html2pdf().set({
+                    margin: 10,
+                    filename: filename,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 3, logging: true, useCORS: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                }).from(pdfContent).save();
+            };
+            
+            downloadButton.addEventListener('click', generatePDF);
+
 
             // --- Form Submission Handler ---
 
@@ -997,7 +1091,6 @@
                     // Destroy charts on error
                     if (window.strengthCurveChartInstance) window.strengthCurveChartInstance.destroy();
                     if (co2ChartInstance) co2ChartInstance.destroy();
-                    renderGaugeMeter(0); // Reset gauge on error
                 } finally {
                     loadingSpinner.classList.add('hidden');
                     compareButton.disabled = false;
@@ -1013,9 +1106,6 @@
                 input.addEventListener('input', generateScmSgInputs);
             });
             generateScmSgInputs();
-            
-            // Initial Gauge Render
-            renderGaugeMeter(0);
         });
     </script>
 </body>
