@@ -121,11 +121,17 @@ def compute_mix_from_inputs(
     sg_fine: float,
     wa_coarse: float,
     wa_fine: float,
-    scm_sg: Optional[Dict[str, float]] = None # Dynamic SCM Specific Gravity
+    scm_sg: Optional[Dict[str, float]] = None, # Dynamic SCM Specific Gravity
+    
+    # PROJECT INPUTS
+    project_volume_m3: float = 1.0,
+    wastage_pct: float = 0.0
 ):
     """
-    Core IS10262-driven (simplified) calculation for one mix.
+    Core IS10262-driven (simplified) calculation for one mix (per m3).
+    Also calculates total required material mass for project volume + wastage.
     """
+    
     # 0) Consolidate Specific Gravities for calculation
     SG = {
         "cement": sg_cement,
@@ -244,23 +250,11 @@ def compute_mix_from_inputs(
     mass_coarse_ssd = coarse_vol * unit_mass * SG["coarse"]
     
     # 10.1) Water absorption correction (IS 10262)
-    # Aggregates are assumed to be batched at SSD condition. Water absorption is then corrected.
-    # Water content in aggregate = (Aggregate Mass * Water Absorption %)
-    
-    # Water to be ADDED to mix if WA is positive (aggregate is wet)
-    # Water to be DEDUCTED from mix if WA is negative (aggregate is dry/SSD state)
-    
-    # In IS 10262: Water required is for SSD aggregates. Water absorption is correction to free water.
-    # If coarse aggregate WA is 0.5%, it needs 0.5% of its SSD mass to reach SSD condition.
-    # The water calculated (water_required_mass) is the FREE WATER required.
-    
     # Water absorbed by aggregates from mix (mass_ssd * WA%)
     water_absorbed_coarse = mass_coarse_ssd * (wa_coarse / 100.0)
     water_absorbed_fine = mass_fine_ssd * (wa_fine / 100.0)
     
     # Total water correction: Subtract the water absorbed by the aggregates from the free water mass.
-    # NOTE: This assumes batched aggregates are dry and absorb water from the mix. 
-    # If WA input is taken as FREE MOISTURE content, the sign reverses. Sticking to WA as absorption.
     final_free_water = water_required_mass - (water_absorbed_coarse + water_absorbed_fine)
 
     if final_free_water < 0:
@@ -306,7 +300,21 @@ def compute_mix_from_inputs(
     durability_index = max(20, min(100, durability_index))
 
 
-    # 15) assemble result
+    # 15) Calculate Project Quantities
+    project_factor = project_volume_m3 * (1.0 + wastage_pct / 100.0)
+    
+    project_quantities = {
+        "cement_actual": round(cement_actual_mass * project_factor, 2),
+        "water": round(final_free_water * project_factor, 2),
+        "fine_aggregate": round(mass_fine * project_factor, 2),
+        "coarse_aggregate": round(mass_coarse * project_factor, 2),
+        
+        # SCMs (include 0 values for consistency)
+        **{k: round(v * project_factor, 2) for k, v in scm_masses.items()},
+    }
+
+
+    # 16) assemble result
     result = {
         "mix_masses_kg_per_m3": {
             "cement_actual": round(cement_actual_mass, 2),
@@ -331,7 +339,8 @@ def compute_mix_from_inputs(
             "cement_meets_minimum": compliance_cement,
             "warnings": warnings,
             "placability_warning": placability_warning
-        }
+        },
+        "required_project_quantities": project_quantities
     }
 
     return result
@@ -340,6 +349,8 @@ def compute_mix_from_inputs(
 # FastAPI + Models
 # -------------------------
 class StandardInput(BaseModel):
+    project_volume_m3: confloat(gt=0) = 1.0
+    wastage_pct: confloat(ge=0) = 0.0
     fck_mpa: confloat(gt=0)
     cement_type: str = Field("OPC")
     cement_grade: int = Field(43)
@@ -358,6 +369,8 @@ class StandardInput(BaseModel):
     wa_fine: confloat(ge=0)
 
 class EcoInput(BaseModel):
+    project_volume_m3: confloat(gt=0) = 1.0
+    wastage_pct: confloat(ge=0) = 0.0
     fck_mpa: confloat(gt=0)
     cement_type: str = Field("OPC")
     cement_grade: int = Field(43)
@@ -423,6 +436,8 @@ def design_standard(payload: StandardInput):
             wa_coarse=float(payload.wa_coarse),
             wa_fine=float(payload.wa_fine),
             scm_sg={}, # No SCMs in standard mix
+            project_volume_m3=float(payload.project_volume_m3),
+            wastage_pct=float(payload.wastage_pct),
         )
         res["inputs"] = payload.dict()
         return res
@@ -463,6 +478,8 @@ def design_eco(payload: EcoInput):
             wa_coarse=float(payload.wa_coarse),
             wa_fine=float(payload.wa_fine),
             scm_sg={k: float(v) for k, v in (payload.scm_sg or {}).items()},
+            project_volume_m3=float(payload.project_volume_m3),
+            wastage_pct=float(payload.wastage_pct),
         )
         res["inputs"] = payload.dict()
         return res
@@ -508,6 +525,8 @@ def design_compare(payload: CompareInput):
             wa_coarse=float(st.wa_coarse),
             wa_fine=float(st.wa_fine),
             scm_sg={},
+            project_volume_m3=float(st.project_volume_m3),
+            wastage_pct=float(st.wastage_pct),
         )
 
         # 1.2 Calculate Eco Mix
@@ -528,6 +547,8 @@ def design_compare(payload: CompareInput):
             wa_coarse=float(eco.wa_coarse),
             wa_fine=float(eco.wa_fine),
             scm_sg=scm_sg_data,
+            project_volume_m3=float(eco.project_volume_m3),
+            wastage_pct=float(eco.wastage_pct),
         )
 
         # 3. Compute Comparisons
