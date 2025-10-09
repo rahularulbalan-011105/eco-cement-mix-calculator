@@ -6,526 +6,561 @@
     <title>EcoMix Carbon Comparator</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load Inter Font -->
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f4f7f9;
-        }
-        /* Custom scrollbar for better aesthetics */
-        ::-webkit-scrollbar {
+        /* Custom scrollbar styling for better aesthetics */
+        body::-webkit-scrollbar {
             width: 8px;
         }
-        ::-webkit-scrollbar-thumb {
-            background-color: #10b981;
+        body::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        body::-webkit-scrollbar-thumb {
+            background: #4ade80;
             border-radius: 4px;
         }
-        ::-webkit-scrollbar-track {
-            background: #e2e8f0;
+        body::-webkit-scrollbar-thumb:hover {
+            background: #22c55e;
+        }
+        /* Custom classes for the main grid layout */
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1.5rem;
         }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="bg-gray-50 min-h-screen font-sans antialiased">
 
-    <div class="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
-        
-        <!-- Left Column: Inputs Form -->
-        <div class="lg:w-1/3 bg-white p-6 rounded-xl shadow-lg h-fit">
-            <h2 class="text-2xl font-bold text-green-700 border-b pb-3 mb-4">Mix Design Inputs</h2>
-            
-            <form id="mixDesignForm" class="space-y-6">
+    <!-- Main Container -->
+    <div id="app" class="max-w-7xl mx-auto p-4 md:p-8 lg:p-12">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold text-gray-800">EcoMix Carbon Comparator</h1>
+            <p class="text-lg text-gray-500 mt-2">IS 10262:2019 Mix Design & Environmental Analysis</p>
+        </header>
 
-                <!-- Core Parameters -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-gray-800">Core Parameters (Standard &amp; Eco)</h3>
-                    
-                    <div>
-                        <label for="fck_mpa" class="block text-sm font-medium text-gray-700">Target Strength (fck, MPa)</label>
-                        <input type="number" id="fck_mpa" value="40" step="1" min="10" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border">
-                    </div>
-
-                    <div class="flex gap-4">
-                        <div class="w-1/2">
-                            <label for="cement_type" class="block text-sm font-medium text-gray-700">Cement Type</label>
-                            <select id="cement_type" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border">
-                                <option value="OPC">OPC (Ordinary Portland Cement)</option>
-                                <option value="PPC-FLYASH" selected>PPC (Flyash-based)</option>
-                                <option value="PPC-CALCINED">PPC (Calcined Clay-based)</option>
-                                <option value="PSC">PSC (Portland Slag Cement)</option>
-                            </select>
-                        </div>
-                        <div class="w-1/2 hidden" id="cement_grade_container">
-                            <label for="cement_grade" class="block text-sm font-medium text-gray-700">Cement Grade</label>
-                            <select id="cement_grade" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border">
-                                <option value="43">43</option>
-                                <option value="53">53</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="flex gap-4">
-                        <div class="w-1/2">
-                            <label for="w_c_ratio" class="block text-sm font-medium text-gray-700">Water/Cement (w/c) Ratio</label>
-                            <input type="number" id="w_c_ratio" value="0.36" step="0.01" min="0.25" max="0.7" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border">
-                        </div>
-                        <div class="w-1/2">
-                            <label for="slump_mm" class="block text-sm font-medium text-gray-700">Slump (mm)</label>
-                            <input type="number" id="slump_mm" value="75" step="5" min="0" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border">
-                        </div>
-                    </div>
-
-                    <div class="flex gap-4">
-                        <div class="w-1/2">
-                            <label for="max_agg_size_mm" class="block text-sm font-medium text-gray-700">Max Aggregate Size (mm)</label>
-                            <select id="max_agg_size_mm" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border">
-                                <option value="10">10 mm</option>
-                                <option value="12.5">12.5 mm</option>
-                                <option value="20" selected>20 mm</option>
-                                <option value="40">40 mm</option>
-                            </select>
-                        </div>
-                        <div class="w-1/2">
-                            <label for="placing_method" class="block text-sm font-medium text-gray-700">Placing Method</label>
-                            <select id="placing_method" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border">
-                                <option value="manual_placing">Manual Placing</option>
-                                <option value="chute_non_pumpable" selected>Chute (Non-Pumpable)</option>
-                                <option value="pumping">Pumping</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <label for="exposure" class="block text-sm font-medium text-gray-700">Exposure Condition (IS 456)</label>
-                        <select id="exposure" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border">
-                            <option value="mild">Mild</option>
-                            <option value="moderate">Moderate</option>
-                            <option value="severe" selected>Severe</option>
-                            <option value="very_severe">Very Severe</option>
-                            <option value="extreme">Extreme</option>
-                        </select>
-                    </div>
-
-                    <div class="flex items-center">
-                        <input id="use_superplasticizer" type="checkbox" checked class="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500">
-                        <label for="use_superplasticizer" class="ml-2 block text-sm text-gray-700">Use Superplasticizer (20% water reduction)</label>
-                    </div>
-                </div>
-
-                <!-- SCM Replacements (Eco Mix) -->
-                <div class="space-y-4 pt-4 border-t border-gray-200">
-                    <h3 class="text-lg font-semibold text-green-700">Eco-Mix SCM Replacements (Fraction of Cementitious Mass)</h3>
-                    <p class="text-xs text-gray-500">Total fraction should not exceed 0.9 (90%).</p>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="ggbs_frac" class="block text-sm font-medium text-gray-700">GGBS Fraction (Max 0.9)</label>
-                            <input type="number" id="ggbs_frac" value="0.4" step="0.01" min="0.0" max="0.9" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border">
-                        </div>
-                        <div>
-                            <label for="flyash_frac" class="block text-sm font-medium text-gray-700">Flyash Fraction (Max 0.6)</label>
-                            <input type="number" id="flyash_frac" value="0.0" step="0.01" min="0.0" max="0.6" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border">
-                        </div>
-                        <div>
-                            <label for="rha_frac" class="block text-sm font-medium text-gray-700">Rice Husk Ash (RHA) Fraction (Max 0.3)</label>
-                            <input type="number" id="rha_frac" value="0.0" step="0.01" min="0.0" max="0.3" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border">
-                        </div>
-                        <div>
-                            <label for="silica_fume_frac" class="block text-sm font-medium text-gray-700">Silica Fume Fraction (Max 0.1)</label>
-                            <input type="number" id="silica_fume_frac" value="0.0" step="0.01" min="0.0" max="0.1" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border">
-                        </div>
-                    </div>
-                </div>
-
-                <button type="submit" class="w-full py-3 bg-green-600 text-white font-bold rounded-lg shadow-md hover:bg-green-700 transition duration-150 flex items-center justify-center" id="compareButton">
-                    Compare Mixes
-                </button>
-            </form>
-        </div>
-
-        <!-- Right Column: Results Dashboard -->
-        <div class="lg:w-2/3 space-y-6">
-
-            <!-- Error/Loading Message -->
-            <div id="messageBox" class="hidden p-4 rounded-lg font-semibold" role="alert"></div>
-            
-            <!-- Summary Dashboard -->
-            <div id="summaryDashboard" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4">
-                
-                <div class="bg-green-50 p-4 rounded-xl shadow-md text-center">
-                    <p class="text-sm font-semibold text-green-600">CO₂ Reduction %</p>
-                    <p id="co2_reduction" class="text-3xl font-extrabold text-green-700 mt-1">0.00%</p>
-                </div>
-
-                <div class="bg-blue-50 p-4 rounded-xl shadow-md text-center">
-                    <p class="text-sm font-semibold text-blue-600">Cement Saving %</p>
-                    <p id="cement_saving" class="text-3xl font-extrabold text-blue-700 mt-1">0.00%</p>
-                </div>
-
-                <div class="bg-yellow-50 p-4 rounded-xl shadow-md text-center">
-                    <p class="text-sm font-semibold text-yellow-600">Strength Difference (MPa)</p>
-                    <p id="strength_diff" class="text-3xl font-extrabold text-yellow-700 mt-1">0.00 MPa</p>
-                </div>
-
-            </div>
-
-            <!-- Detailed Comparison Table -->
-            <div id="resultsTableContainer" class="hidden bg-white p-6 rounded-xl shadow-lg">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Detailed Mix Comparison (Per 1 m³)</h2>
-                
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead>
-                        <tr>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">METRIC</th>
-                            <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">STANDARD MIX</th>
-                            <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ECO MIX</th>
-                        </tr>
-                    </thead>
-                    <tbody id="resultsTableBody" class="divide-y divide-gray-200 text-sm">
-                        
-                        <!-- Performance Metrics Header -->
-                        <tr>
-                            <td colspan="3" class="px-3 py-3 text-left text-sm font-bold text-gray-700 bg-gray-50 uppercase">PREDICTED PERFORMANCE METRICS</td>
-                        </tr>
-                        <!-- Predicted Strength -->
-                        <tr class="font-bold text-base">
-                            <td class="px-3 py-2 whitespace-nowrap">Predicted 28D Strength (MPa)</td>
-                            <td id="std_strength" class="px-3 py-2 whitespace-nowrap text-right text-green-700"></td>
-                            <td id="eco_strength" class="px-3 py-2 whitespace-nowrap text-right text-green-700"></td>
-                        </tr>
-                        <!-- Estimated CO2 Emissions -->
-                        <tr>
-                            <td class="px-3 py-2 whitespace-nowrap">Estimated CO₂ Emissions (kg/m³)</td>
-                            <td id="std_co2" class="px-3 py-2 whitespace-nowrap text-right"></td>
-                            <td id="eco_co2" class="px-3 py-2 whitespace-nowrap text-right text-red-500 font-semibold"></td>
-                        </tr>
-                        <!-- Workability -->
-                        <tr>
-                            <td class="px-3 py-2 whitespace-nowrap">Workability Class (Slump)</td>
-                            <td id="std_workability" class="px-3 py-2 whitespace-nowrap text-right"></td>
-                            <td id="eco_workability" class="px-3 py-2 whitespace-nowrap text-right"></td>
-                        </tr>
-                        <!-- Durability Index -->
-                        <tr>
-                            <td class="px-3 py-2 whitespace-nowrap">Durability Index (0-100)</td>
-                            <td id="std_durability" class="px-3 py-2 whitespace-nowrap text-right"></td>
-                            <td id="eco_durability" class="px-3 py-2 whitespace-nowrap text-right"></td>
-                        </tr>
-                        
-                        <!-- Mix Masses Header -->
-                        <tr>
-                            <td colspan="3" class="px-3 py-3 text-left text-sm font-bold text-gray-700 bg-gray-50 uppercase">MIX MASSES (kg/m³)</td>
-                        </tr>
-                        <!-- Cement -->
-                        <tr class="font-semibold">
-                            <td class="px-3 py-2 whitespace-nowrap">Cement (Actual OPC component)</td>
-                            <td id="std_cement" class="px-3 py-2 whitespace-nowrap text-right text-red-600"></td>
-                            <td id="eco_cement" class="px-3 py-2 whitespace-nowrap text-right text-green-600"></td>
-                        </tr>
-                        <!-- Water -->
-                        <tr>
-                            <td class="px-3 py-2 whitespace-nowrap">Water</td>
-                            <td id="std_water" class="px-3 py-2 whitespace-nowrap text-right"></td>
-                            <td id="eco_water" class="px-3 py-2 whitespace-nowrap text-right"></td>
-                        </tr>
-                        <!-- Fine Aggregate -->
-                        <tr>
-                            <td class="px-3 py-2 whitespace-nowrap">Fine Aggregate (Sand)</td>
-                            <td id="std_fine" class="px-3 py-2 whitespace-nowrap text-right"></td>
-                            <td id="eco_fine" class="px-3 py-2 whitespace-nowrap text-right"></td>
-                        </tr>
-                        <!-- Coarse Aggregate -->
-                        <tr>
-                            <td class="px-3 py-2 whitespace-nowrap">Coarse Aggregate</td>
-                            <td id="std_coarse" class="px-3 py-2 whitespace-nowrap text-right"></td>
-                            <td id="eco_coarse" class="px-3 py-2 whitespace-nowrap text-right"></td>
-                        </tr>
-                        <!-- SCMs (Dynamic rows for GGBS, Flyash, RHA, etc.) -->
-                        <!-- Placeholder for SCMs -->
-
-                    </tbody>
-                </table>
-                <div id="scmRowsPlaceholder"></div>
-                
-                <!-- Compliance and Warnings -->
-                <div id="warningsContainer" class="mt-6 pt-4 border-t border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-2">IS 456 Compliance &amp; Warnings</h3>
-                    <div id="std_warnings" class="bg-red-50 border-l-4 border-red-400 text-red-700 p-3 mb-2 hidden"></div>
-                    <div id="eco_warnings" class="bg-red-50 border-l-4 border-red-400 text-red-700 p-3 hidden"></div>
-                </div>
-
+        <!-- Dynamic Error Message Display -->
+        <div id="message-box" class="hidden p-4 mb-6 rounded-xl shadow-lg transition-all" role="alert">
+            <div class="flex items-center">
+                <svg id="message-icon" class="flex-shrink-0 w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                <span id="message-text" class="font-medium"></span>
             </div>
         </div>
 
+        <div class="lg:grid lg:grid-cols-3 lg:gap-8">
+            <!-- Left Column: Inputs -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-xl sticky top-8 h-fit">
+                <h2 class="text-2xl font-semibold text-green-700 mb-6 border-b pb-3">Mix Design Inputs</h2>
+
+                <form id="design-form">
+                    
+                    <!-- Core Parameters -->
+                    <div class="mb-8">
+                        <h3 class="text-xl font-medium text-gray-700 mb-4">Core Parameters (Standard & Eco)</h3>
+                        
+                        <div class="space-y-4">
+                            <!-- Target Strength -->
+                            <div>
+                                <label for="fck_mpa" class="block text-sm font-medium text-gray-600">Target Strength (fck, MPa)</label>
+                                <input type="number" id="fck_mpa" name="fck_mpa" value="40" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                            </div>
+
+                            <!-- Cement Selection Grid -->
+                            <div class="input-grid">
+                                <div>
+                                    <label for="cement_type" class="block text-sm font-medium text-gray-600">Cement Type</label>
+                                    <select id="cement_type" name="cement_type" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                        <option value="OPC" selected>OPC (Ordinary Portland)</option>
+                                        <option value="PPC-FLYASH">PPC (Flyash-based)</option>
+                                        <option value="PPC-CALCINED">PPC (Calcined Clay-based)</option>
+                                        <option value="PSC">PSC (Portland Slag)</option>
+                                    </select>
+                                </div>
+                                
+                                <div id="cement_grade_container">
+                                    <label for="cement_grade" class="block text-sm font-medium text-gray-600">Cement Grade</label>
+                                    <select id="cement_grade" name="cement_grade" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                        <option value="43" selected>43</option>
+                                        <option value="53">53</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- W/C and Slump Grid -->
+                            <div class="input-grid">
+                                <div>
+                                    <label for="w_c_ratio" class="block text-sm font-medium text-gray-600">Water/Cement (w/c) Ratio</label>
+                                    <input type="number" id="w_c_ratio" name="w_c_ratio" value="0.36" step="0.01" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                </div>
+                                <div>
+                                    <label for="slump_mm" class="block text-sm font-medium text-gray-600">Slump (mm)</label>
+                                    <input type="number" id="slump_mm" name="slump_mm" value="75" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                </div>
+                            </div>
+                            
+                            <!-- Aggregate Size and Placing Grid -->
+                            <div class="input-grid">
+                                <div>
+                                    <label for="max_agg_size_mm" class="block text-sm font-medium text-gray-600">Max Aggregate Size (mm)</label>
+                                    <select id="max_agg_size_mm" name="max_agg_size_mm" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                        <option value="20" selected>20 mm</option>
+                                        <option value="10">10 mm</option>
+                                        <option value="12.5">12.5 mm</option>
+                                        <option value="40">40 mm</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="placing_method" class="block text-sm font-medium text-gray-600">Placing Method</label>
+                                    <select id="placing_method" name="placing_method" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                        <option value="manual_placing">Manual Placing</option>
+                                        <option value="chute_non_pumpable" selected>Chute (Non-Pumpable)</option>
+                                        <option value="pumping">Pumping</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Exposure Condition -->
+                            <div>
+                                <label for="exposure" class="block text-sm font-medium text-gray-600">Exposure Condition (IS 456)</label>
+                                <select id="exposure" name="exposure" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                    <option value="mild">Mild</option>
+                                    <option value="moderate">Moderate</option>
+                                    <option value="severe" selected>Severe</option>
+                                    <option value="very_severe">Very Severe</option>
+                                    <option value="extreme">Extreme</option>
+                                </select>
+                            </div>
+
+                            <!-- Superplasticizer Checkbox -->
+                            <div class="pt-2">
+                                <label class="flex items-center text-sm font-medium text-gray-600 cursor-pointer">
+                                    <input type="checkbox" id="use_superplasticizer" name="use_superplasticizer" checked class="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500">
+                                    <span class="ml-2">Use Superplasticizer (20% water reduction)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Eco-Mix Replacements -->
+                    <div class="mb-8 p-4 bg-green-50 rounded-lg border border-green-200">
+                        <h3 class="text-xl font-medium text-green-700 mb-3">Eco-Mix SCM Replacements (Fraction of Cementitious Mass)</h3>
+                        <p class="text-xs text-gray-500 mb-4">Total fraction should not exceed 0.9 (90%).</p>
+
+                        <!-- Two-Column Grid for SCMs -->
+                        <div class="grid lg:grid-cols-2 gap-4">
+                            <!-- Column 1: Industrial Wastes -->
+                            <div>
+                                <h4 class="text-sm font-semibold text-gray-600 mb-2">Industrial Wastes</h4>
+                                <div class="space-y-4">
+                                    <!-- GGBS -->
+                                    <div>
+                                        <label for="ggbs_frac" class="block text-sm font-medium text-gray-600">GGBS Fraction (Max 0.9)</label>
+                                        <input type="number" id="ggbs_frac" name="ggbs_frac" value="0.4" step="0.01" min="0" max="0.9" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                    </div>
+
+                                    <!-- Flyash -->
+                                    <div>
+                                        <label for="flyash_frac" class="block text-sm font-medium text-gray-600">Flyash Fraction (Max 0.6)</label>
+                                        <input type="number" id="flyash_frac" name="flyash_frac" value="0.0" step="0.01" min="0" max="0.6" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                    </div>
+
+                                    <!-- Metakaolin -->
+                                    <div>
+                                        <label for="metakaolin_frac" class="block text-sm font-medium text-gray-600">Metakaolin Fraction (Max 0.1)</label>
+                                        <input type="number" id="metakaolin_frac" name="metakaolin_frac" value="0.0" step="0.01" min="0" max="0.1" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                    </div>
+                                    
+                                    <!-- Silica Fume -->
+                                    <div>
+                                        <label for="silica_fume_frac" class="block text-sm font-medium text-gray-600">Silica Fume Fraction (Max 0.1)</label>
+                                        <input type="number" id="silica_fume_frac" name="silica_fume_frac" value="0.0" step="0.01" min="0" max="0.1" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Column 2: Agricultural Wastes -->
+                            <div>
+                                <h4 class="text-sm font-semibold text-gray-600 mb-2">Agricultural Wastes</h4>
+                                <div class="space-y-4">
+                                    <!-- RHA -->
+                                    <div>
+                                        <label for="rice_husk_ash_frac" class="block text-sm font-medium text-gray-600">Rice Husk Ash (RHA) Fraction (Max 0.3)</label>
+                                        <input type="number" id="rice_husk_ash_frac" name="rice_husk_ash_frac" value="0.0" step="0.01" min="0" max="0.3" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                    </div>
+                                    
+                                    <!-- Sugarcane Ash -->
+                                    <div>
+                                        <label for="sugarcane_ash_frac" class="block text-sm font-medium text-gray-600">Sugarcane Ash Fraction (Max 0.2)</label>
+                                        <input type="number" id="sugarcane_ash_frac" name="sugarcane_ash_frac" value="0.0" step="0.01" min="0" max="0.2" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-xl hover:bg-green-700 transition duration-150 shadow-lg shadow-green-200/50 flex items-center justify-center" id="compare-button">
+                        <svg id="loading-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Compare Mixes
+                    </button>
+                </form>
+            </div>
+
+            <!-- Right Column: Results Dashboard -->
+            <div class="lg:col-span-2 mt-8 lg:mt-0">
+                
+                <!-- Summary Dashboard -->
+                <div class="grid grid-cols-3 gap-4 mb-8">
+                    <div id="co2-card" class="p-5 bg-white rounded-2xl shadow-xl text-center border-b-4 border-green-500">
+                        <p class="text-sm font-medium text-gray-500">CO₂ Reduction %</p>
+                        <p id="co2_reduction_pct" class="text-3xl font-bold text-green-600 mt-1">0.00%</p>
+                    </div>
+                    <div id="cement-card" class="p-5 bg-white rounded-2xl shadow-xl text-center border-b-4 border-blue-500">
+                        <p class="text-sm font-medium text-gray-500">Cement Saving %</p>
+                        <p id="cement_saving_pct" class="text-3xl font-bold text-blue-600 mt-1">0.00%</p>
+                    </div>
+                    <div id="strength-card" class="p-5 bg-white rounded-2xl shadow-xl text-center border-b-4 border-yellow-500">
+                        <p class="text-sm font-medium text-gray-500">Strength Difference (MPa)</p>
+                        <p id="strength_diff_MPa" class="text-3xl font-bold text-yellow-600 mt-1">0.00</p>
+                    </div>
+                </div>
+
+                <!-- Detailed Comparison Table -->
+                <div id="results-container" class="bg-white p-6 rounded-2xl shadow-xl hidden">
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-6 border-b pb-3">Detailed Mix Comparison (Per 1 m³)</h2>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">METRIC</th>
+                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">STANDARD MIX</th>
+                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ECO MIX</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                
+                                <!-- Performance Header -->
+                                <tr>
+                                    <td colspan="3" class="px-6 py-2 text-sm font-bold text-gray-700 bg-gray-100 uppercase tracking-wider">Predicted Performance Metrics</td>
+                                </tr>
+
+                                <!-- Predicted Strength -->
+                                <tr class="hover:bg-green-50/50">
+                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Predicted 28D Strength (MPa)</td>
+                                    <td id="std_strength" class="px-6 py-3 text-sm text-right font-semibold text-gray-700"></td>
+                                    <td id="eco_strength" class="px-6 py-3 text-sm text-right font-semibold text-green-600"></td>
+                                </tr>
+
+                                <!-- Estimated CO2 Emissions -->
+                                <tr class="hover:bg-red-50/50">
+                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Estimated CO₂ Emissions (kg/m³)</td>
+                                    <td id="std_co2" class="px-6 py-3 text-sm text-right font-semibold text-gray-700"></td>
+                                    <td id="eco_co2" class="px-6 py-3 text-sm text-right font-semibold text-red-600"></td>
+                                </tr>
+                                
+                                <!-- Workability Class -->
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Workability Class</td>
+                                    <td id="std_workability" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                    <td id="eco_workability" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                </tr>
+
+                                <!-- Durability Index -->
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Durability Index (0-100)</td>
+                                    <td id="std_durability" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                    <td id="eco_durability" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                </tr>
+
+                                <!-- Mix Masses Header -->
+                                <tr>
+                                    <td colspan="3" class="px-6 py-2 text-sm font-bold text-gray-700 bg-gray-100 uppercase tracking-wider">Mix Masses (kg/m³)</td>
+                                </tr>
+
+                                <!-- Cement (Actual OPC) -->
+                                <tr class="hover:bg-yellow-50/50">
+                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Cement (Actual OPC Component)</td>
+                                    <td id="std_cement" class="px-6 py-3 text-sm text-right font-medium text-gray-700"></td>
+                                    <td id="eco_cement" class="px-6 py-3 text-sm text-right font-medium text-gray-700"></td>
+                                </tr>
+                                
+                                <!-- Water -->
+                                <tr>
+                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Water</td>
+                                    <td id="std_water" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                    <td id="eco_water" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                </tr>
+                                
+                                <!-- Fine Aggregate -->
+                                <tr>
+                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Fine Aggregate (Sand)</td>
+                                    <td id="std_fine_agg" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                    <td id="eco_fine_agg" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                </tr>
+
+                                <!-- Coarse Aggregate -->
+                                <tr>
+                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Coarse Aggregate</td>
+                                    <td id="std_coarse_agg" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                    <td id="eco_coarse_agg" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                </tr>
+
+                                <!-- SCMs (Dynamic Rows) -->
+                                <tr id="row_ggbs" class="hover:bg-gray-50 hidden">
+                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">GGBS</td>
+                                    <td id="std_ggbs" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                    <td id="eco_ggbs" class="px-6 py-3 text-sm text-right text-green-700"></td>
+                                </tr>
+                                <tr id="row_flyash" class="hover:bg-gray-50 hidden">
+                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Flyash</td>
+                                    <td id="std_flyash" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                    <td id="eco_flyash" class="px-6 py-3 text-sm text-right text-green-700"></td>
+                                </tr>
+                                <tr id="row_metakaolin" class="hover:bg-gray-50 hidden">
+                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Metakaolin</td>
+                                    <td id="std_metakaolin" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                    <td id="eco_metakaolin" class="px-6 py-3 text-sm text-right text-green-700"></td>
+                                </tr>
+                                <tr id="row_silicafume" class="hover:bg-gray-50 hidden">
+                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Silica Fume</td>
+                                    <td id="std_silicafume" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                    <td id="eco_silicafume" class="px-6 py-3 text-sm text-right text-green-700"></td>
+                                </tr>
+                                <tr id="row_rha" class="hover:bg-gray-50 hidden">
+                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Rice Husk Ash (RHA)</td>
+                                    <td id="std_rha" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                    <td id="eco_rha" class="px-6 py-3 text-sm text-right text-green-700"></td>
+                                </tr>
+                                <tr id="row_sugarcane_ash" class="hover:bg-gray-50 hidden">
+                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">Sugarcane Ash</td>
+                                    <td id="std_sugarcane_ash" class="px-6 py-3 text-sm text-right text-gray-700"></td>
+                                    <td id="eco_sugarcane_ash" class="px-6 py-3 text-sm text-right text-green-700"></td>
+                                </tr>
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Warnings Section -->
+                <div id="warnings-container" class="mt-8 bg-yellow-50 p-5 rounded-2xl shadow-xl border border-yellow-300 hidden">
+                    <h3 class="text-lg font-semibold text-yellow-800 mb-3 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.543 2.658-1.543 3.423 0L14.4 7.636l.894 1.788c.765 1.543-.362 3.256-1.923 3.256H6.629c-1.56 0-2.688-1.713-1.923-3.256l.894-1.788L8.257 3.099z" clip-rule="evenodd"></path></svg>
+                        Durability & Compliance Warnings
+                    </h3>
+                    <ul id="warnings-list" class="list-disc pl-5 space-y-2 text-sm text-yellow-700">
+                        <!-- Warnings dynamically inserted here -->
+                    </ul>
+                </div>
+
+            </div>
+        </div>
     </div>
 
     <script>
-        const form = document.getElementById('mixDesignForm');
-        const messageBox = document.getElementById('messageBox');
-        const compareButton = document.getElementById('compareButton');
-        const summaryDashboard = document.getElementById('summaryDashboard');
-        const resultsTableContainer = document.getElementById('resultsTableContainer');
-        const cementTypeSelect = document.getElementById('cement_type');
-        const cementGradeContainer = document.getElementById('cement_grade_container');
-        const cementGradeSelect = document.getElementById('cement_grade');
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('design-form');
+            const messageBox = document.getElementById('message-box');
+            const messageText = document.getElementById('message-text');
+            const messageIcon = document.getElementById('message-icon');
+            const compareButton = document.getElementById('compare-button');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const cementTypeSelect = document.getElementById('cement_type');
+            const cementGradeContainer = document.getElementById('cement_grade_container');
 
-        // Hardcoding the API URL to 127.0.0.1:8000 to solve "Failed to Fetch" issues in local environments
-        const API_URL = 'http://127.0.0.1:8000/api/design/compare';
+            // API_BASE_URL is hardcoded to ensure connection to local running server
+            const API_BASE_URL = 'http://127.0.0.1:8000/api/design/compare';
 
-        // --- UI Utility Functions ---
+            // --- UI Helper Functions ---
 
-        function showMessage(type, message) {
-            messageBox.classList.remove('hidden', 'bg-red-100', 'border-red-400', 'text-red-700', 'bg-green-100', 'border-green-400', 'text-green-700', 'bg-gray-100', 'border-gray-400', 'text-gray-700', 'border');
-            messageBox.textContent = message;
-            if (type === 'error') {
-                messageBox.classList.add('bg-red-100', 'border-red-400', 'text-red-700', 'border');
-            } else if (type === 'success') {
-                messageBox.classList.add('bg-green-100', 'border-green-400', 'text-green-700', 'border');
-            } else if (type === 'loading') {
-                messageBox.classList.add('bg-gray-100', 'border-gray-400', 'text-gray-700', 'border');
-            }
-        }
-
-        function toggleLoading(isLoading) {
-            compareButton.disabled = isLoading;
-            compareButton.innerHTML = isLoading ? '<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Comparing...' : 'Compare Mixes';
-        }
-
-        function toggleCementGradeInput() {
-            const isOPC = cementTypeSelect.value === 'OPC';
-            if (isOPC) {
-                cementGradeContainer.classList.remove('hidden');
-            } else {
-                cementGradeContainer.classList.add('hidden');
-            }
-        }
-        
-        // --- Data Handling ---
-
-        function getFormData() {
-            const fck_mpa = parseFloat(document.getElementById('fck_mpa').value);
-            const w_c_ratio = parseFloat(document.getElementById('w_c_ratio').value);
-            const slump_mm = parseFloat(document.getElementById('slump_mm').value);
-            const max_agg_size_mm = parseInt(document.getElementById('max_agg_size_mm').value);
-            const exposure = document.getElementById('exposure').value;
-            const use_superplasticizer = document.getElementById('use_superplasticizer').checked;
-            const cement_type = document.getElementById('cement_type').value;
-            const placing_method = document.getElementById('placing_method').value;
-
-            // Cement Grade is only required for OPC. Default to 0 if hidden.
-            const cement_grade = (cement_type === 'OPC') ? parseInt(document.getElementById('cement_grade').value) : 0;
-            
-            // SCM fractions for Eco Mix
-            const ggbs_frac = parseFloat(document.getElementById('ggbs_frac').value) || 0.0;
-            const flyash_frac = parseFloat(document.getElementById('flyash_frac').value) || 0.0;
-            const rice_husk_ash_frac = parseFloat(document.getElementById('rha_frac').value) || 0.0;
-            const silica_fume_frac = parseFloat(document.getElementById('silica_fume_frac').value) || 0.0;
-            const metakaolin_frac = 0.0; // Not exposed in UI
-            const sugarcane_ash_frac = 0.0; // Not exposed in UI
-            const coconut_husk_ash_frac = 0.0; // Not exposed in UI
-
-
-            return {
-                standard: {
-                    fck_mpa: fck_mpa,
-                    w_c_ratio: w_c_ratio,
-                    slump_mm: slump_mm,
-                    max_agg_size_mm: max_agg_size_mm,
-                    exposure: exposure,
-                    use_superplasticizer: use_superplasticizer,
-                    cement_type: cement_type,
-                    cement_grade: cement_grade,
-                    placing_method: placing_method,
-                },
-                eco: {
-                    fck_mpa: fck_mpa,
-                    w_c_ratio: w_c_ratio,
-                    slump_mm: slump_mm,
-                    max_agg_size_mm: max_agg_size_mm,
-                    exposure: exposure,
-                    use_superplasticizer: use_superplasticizer,
-                    cement_type: cement_type,
-                    cement_grade: cement_grade,
-                    placing_method: placing_method,
-                    rice_husk_ash_frac: rice_husk_ash_frac,
-                    coconut_husk_ash_frac: coconut_husk_ash_frac,
-                    sugarcane_ash_frac: sugarcane_ash_frac,
-                    flyash_frac: flyash_frac,
-                    ggbs_frac: ggbs_frac,
-                    silica_fume_frac: silica_fume_frac,
-                    metakaolin_frac: metakaolin_frac,
+            const updateCementGradeVisibility = () => {
+                const selectedType = cementTypeSelect.value;
+                // Only show grade for OPC. Blended cements (PPC, PSC) are defined by composition.
+                if (selectedType === 'OPC') {
+                    cementGradeContainer.style.display = 'block';
+                    document.getElementById('cement_grade').setAttribute('required', 'required');
+                } else {
+                    cementGradeContainer.style.display = 'none';
+                    document.getElementById('cement_grade').removeAttribute('required');
                 }
             };
-        }
 
-        // --- Rendering Results ---
+            const showMessage = (type, message) => {
+                messageBox.classList.remove('hidden', 'bg-red-100', 'bg-green-100');
+                messageBox.classList.add(type === 'error' ? 'bg-red-100' : 'bg-green-100');
+                
+                messageIcon.innerHTML = type === 'error' 
+                    ? `<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>`
+                    : `<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>`;
+                
+                messageText.textContent = message;
+            };
+            
+            const setComparisonMetrics = (comparison) => {
+                document.getElementById('co2_reduction_pct').textContent = `${comparison.co2_reduction_pct.toFixed(2)}%`;
+                document.getElementById('cement_saving_pct').textContent = `${comparison.cement_saving_pct.toFixed(2)}%`;
+                document.getElementById('strength_diff_MPa').textContent = `${comparison.predicted_strength_diff_MPa.toFixed(2)}`;
+            };
 
-        function renderScmRows(ecoMasses) {
-            const scmRowsPlaceholder = document.getElementById('scmRowsPlaceholder');
-            scmRowsPlaceholder.innerHTML = '';
-            
-            // List of SCMs to display and their default keys/labels
-            const scmKeys = ["ggbs", "flyash", "rha", "silicafume", "metakaolin", "coconut_ash", "sugarcane_ash"];
-            
-            // Build SCM rows container
-            const scmTbody = document.createElement('tbody');
-            scmTbody.className = 'divide-y divide-gray-200 text-sm';
-            
-            // SCM Header Row
-            const headerRow = document.createElement('tr');
-            headerRow.innerHTML = `<td colspan="3" class="px-3 py-3 text-left text-sm font-bold text-gray-700 bg-gray-50 uppercase">SCM MASSES (kg/m³)</td>`;
-            scmTbody.appendChild(headerRow);
+            const formatValue = (value) => value !== null && value !== undefined ? value.toFixed(2) : '0.00';
+
+            const renderResults = (data) => {
+                const scmMap = {
+                    'ggbs': ['GGBS', 'row_ggbs', 'std_ggbs', 'eco_ggbs'],
+                    'flyash': ['Flyash', 'row_flyash', 'std_flyash', 'eco_flyash'],
+                    'metakaolin': ['Metakaolin', 'row_metakaolin', 'std_metakaolin', 'eco_metakaolin'],
+                    'silicafume': ['Silica Fume', 'row_silicafume', 'std_silicafume', 'eco_silicafume'],
+                    'rha': ['Rice Husk Ash (RHA)', 'row_rha', 'std_rha', 'eco_rha'],
+                    'sugarcane_ash': ['Sugarcane Ash', 'row_sugarcane_ash', 'std_sugarcane_ash', 'eco_sugarcane_ash'],
+                };
+                
+                // --- 1. Update Summary Dashboard ---
+                setComparisonMetrics(data.comparison);
+
+                // --- 2. Update Performance Metrics ---
+                document.getElementById('std_strength').textContent = formatValue(data.standard.predictions.predicted_28d_strength_MPa) + ' MPa';
+                document.getElementById('eco_strength').textContent = formatValue(data.eco.predictions.predicted_28d_strength_MPa) + ' MPa';
+                document.getElementById('std_co2').textContent = formatValue(data.standard.co2.co2_eco_kg_per_m3) + ' kg/m³';
+                document.getElementById('eco_co2').textContent = formatValue(data.eco.co2.co2_eco_kg_per_m3) + ' kg/m³';
+                document.getElementById('std_workability').textContent = data.standard.predictions.workability_class;
+                document.getElementById('eco_workability').textContent = data.eco.predictions.workability_class;
+                document.getElementById('std_durability').textContent = formatValue(data.standard.predictions.durability_index_0_100);
+                document.getElementById('eco_durability').textContent = formatValue(data.eco.predictions.durability_index_0_100);
 
 
-            let hasScm = false;
-            
-            for (const key of scmKeys) {
-                const mass = ecoMasses[key] || 0.0;
-                // Only show rows that were actually used (mass > 0)
-                if (mass > 0) {
-                    hasScm = true;
-                    // Dynamically generate label
-                    let label = key.toUpperCase();
-                    if (key === 'silicafume') label = 'Silica Fume';
-                    if (key === 'rha') label = 'Rice Husk Ash (RHA)';
-                    if (key === 'coconut_ash') label = 'Coconut Ash';
-                    if (key === 'sugarcane_ash') label = 'Sugarcane Ash';
+                // --- 3. Update Mix Masses (Statics) ---
+                document.getElementById('std_cement').textContent = formatValue(data.standard.mix_masses_kg_per_m3.cement_actual) + ' kg';
+                document.getElementById('eco_cement').textContent = formatValue(data.eco.mix_masses_kg_per_m3.cement_actual) + ' kg';
+                document.getElementById('std_water').textContent = formatValue(data.standard.mix_masses_kg_per_m3.water) + ' kg';
+                document.getElementById('eco_water').textContent = formatValue(data.eco.mix_masses_kg_per_m3.water) + ' kg';
+                document.getElementById('std_fine_agg').textContent = formatValue(data.standard.mix_masses_kg_per_m3.fine_aggregate) + ' kg';
+                document.getElementById('eco_fine_agg').textContent = formatValue(data.eco.mix_masses_kg_per_m3.fine_aggregate) + ' kg';
+                document.getElementById('std_coarse_agg').textContent = formatValue(data.standard.mix_masses_kg_per_m3.coarse_aggregate) + ' kg';
+                document.getElementById('eco_coarse_agg').textContent = formatValue(data.eco.mix_masses_kg_per_m3.coarse_aggregate) + ' kg';
+
+                // --- 4. Update Mix Masses (SCMs) ---
+                Object.keys(scmMap).forEach(key => {
+                    const [scmName, rowId, stdId, ecoId] = scmMap[key];
+                    const row = document.getElementById(rowId);
                     
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="px-3 py-2 whitespace-nowrap text-gray-600">${label}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-right">0.00</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-right text-purple-600 font-semibold">${mass.toFixed(2)}</td>
-                    `;
-                    scmTbody.appendChild(row);
-                }
-            }
-            
-            if (hasScm) {
-                const table = document.createElement('table');
-                table.className = 'min-w-full divide-y divide-gray-200 mt-0';
-                table.appendChild(scmTbody);
-                scmRowsPlaceholder.appendChild(table);
-            }
-        }
+                    // Standard mix should always show 0 for SCMs
+                    const stdValue = data.standard.mix_masses_kg_per_m3[key] || 0.00;
+                    document.getElementById(stdId).textContent = formatValue(stdValue) + ' kg';
 
-        function renderWarnings(warnings, elementId) {
-            const container = document.getElementById(elementId);
-            container.classList.add('hidden');
-            container.innerHTML = '';
+                    // Eco mix shows actual value
+                    const ecoValue = data.eco.mix_masses_kg_per_m3[key] || 0.00;
+                    document.getElementById(ecoId).textContent = formatValue(ecoValue) + ' kg';
 
-            if (warnings && warnings.length > 0) {
-                container.classList.remove('hidden');
-                container.innerHTML = '<strong>Warning:</strong><ul class="list-disc ml-4 mt-1 space-y-1">' +
-                    warnings.map(w => `<li>${w}</li>`).join('') +
-                    '</ul>';
-            }
-        }
-
-        function renderResults(data) {
-            // Update Summary Dashboard
-            document.getElementById('co2_reduction').textContent = `${data.comparison.co2_reduction_pct.toFixed(2)}%`;
-            document.getElementById('cement_saving').textContent = `${data.comparison.cement_saving_pct.toFixed(2)}%`;
-            document.getElementById('strength_diff').textContent = `${data.comparison.predicted_strength_diff_MPa.toFixed(2)} MPa`;
-
-            // Render Mix Masses (Static Rows)
-            document.getElementById('std_cement').textContent = data.standard.mix_masses_kg_per_m3.cement_actual.toFixed(2);
-            document.getElementById('eco_cement').textContent = data.eco.mix_masses_kg_per_m3.cement_actual.toFixed(2);
-            document.getElementById('std_water').textContent = data.standard.mix_masses_kg_per_m3.water.toFixed(2);
-            document.getElementById('eco_water').textContent = data.eco.mix_masses_kg_per_m3.water.toFixed(2);
-            document.getElementById('std_fine').textContent = data.standard.mix_masses_kg_per_m3.fine_aggregate.toFixed(2);
-            document.getElementById('eco_fine').textContent = data.eco.mix_masses_kg_per_m3.fine_aggregate.toFixed(2);
-            document.getElementById('std_coarse').textContent = data.standard.mix_masses_kg_per_m3.coarse_aggregate.toFixed(2);
-            document.getElementById('eco_coarse').textContent = data.eco.mix_masses_kg_per_m3.coarse_aggregate.toFixed(2);
-            
-            // Render Performance Metrics (Static Rows)
-            document.getElementById('std_strength').textContent = `${data.standard.predictions.predicted_28d_strength_MPa.toFixed(2)} MPa`;
-            document.getElementById('eco_strength').textContent = `${data.eco.predictions.predicted_28d_strength_MPa.toFixed(2)} MPa`;
-            document.getElementById('std_co2').textContent = `${data.standard.co2.co2_base_kg_per_m3.toFixed(2)} kg/m³`;
-            document.getElementById('eco_co2').textContent = `${data.eco.co2.co2_eco_kg_per_m3.toFixed(2)} kg/m³`;
-            document.getElementById('std_workability').textContent = data.standard.predictions.workability_class;
-            document.getElementById('eco_workability').textContent = data.eco.predictions.workability_class;
-            document.getElementById('std_durability').textContent = data.standard.predictions.durability_index_0_100.toFixed(1);
-            document.getElementById('eco_durability').textContent = data.eco.predictions.durability_index_0_100.toFixed(1);
-            
-            // Render Dynamic SCM Rows
-            renderScmRows(data.eco.mix_masses_kg_per_m3);
-            
-            // Render Warnings
-            renderWarnings(data.standard.is_compliance.warnings, 'std_warnings');
-            renderWarnings(data.eco.is_compliance.warnings, 'eco_warnings');
-
-            // Show containers
-            summaryDashboard.classList.remove('hidden');
-            resultsTableContainer.classList.remove('hidden');
-            
-        }
-
-        // --- Main Submission Logic ---
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            messageBox.classList.add('hidden');
-            summaryDashboard.classList.add('hidden');
-            resultsTableContainer.classList.add('hidden');
-            
-            const payload = getFormData();
-            
-            if (payload.eco.ggbs_frac + payload.eco.flyash_frac + payload.eco.rice_husk_ash_frac + payload.eco.silica_fume_frac > 0.9) {
-                showMessage('error', 'Validation Error: Total SCM replacement fraction must not exceed 0.9 (90%).');
-                return;
-            }
-
-            toggleLoading(true);
-
-            try {
-                let response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    // Hide rows where SCM is not used in either mix
+                    if (stdValue > 0.01 || ecoValue > 0.01) {
+                        row.classList.remove('hidden');
+                    } else {
+                        row.classList.add('hidden');
+                    }
                 });
 
-                const data = await response.json();
+                // --- 5. Handle Warnings ---
+                const warningsContainer = document.getElementById('warnings-container');
+                const warningsList = document.getElementById('warnings-list');
+                const allWarnings = data.standard.is_compliance.warnings.concat(data.eco.is_compliance.warnings);
 
-                if (!response.ok) {
-                    // Check if the response is JSON (HTTPException) or HTML 
-                    const errorDetail = data.detail || 'The server returned an unknown error.';
-                    throw new Error(`Design Error: ${errorDetail}`);
-                }
-                
-                renderResults(data);
-                showMessage('success', 'Mix design comparison successful!');
-
-            } catch (error) {
-                console.error('Fetch Error:', error);
-                let errorMessage = error.message;
-
-                // Handle the common "Failed to fetch" which usually means the backend is down
-                if (errorMessage.includes('Failed to fetch') || errorMessage.includes('Unexpected token')) {
-                    errorMessage = "Failed to fetch: Check if your FastAPI server is running in the terminal at http://127.0.0.1:8000.";
-                }
-
-                // If the error is the Pydantic ValidationError (400), display it clearly
-                if (errorMessage.startsWith("Design Error: ")) {
-                    showMessage('error', errorMessage.replace('Design Error: ', 'Design Error: '));
+                warningsList.innerHTML = '';
+                if (allWarnings.length > 0) {
+                    allWarnings.forEach(w => {
+                        const li = document.createElement('li');
+                        li.textContent = w;
+                        warningsList.appendChild(li);
+                    });
+                    warningsContainer.classList.remove('hidden');
                 } else {
-                    showMessage('error', errorMessage);
+                    warningsContainer.classList.add('hidden');
                 }
 
+                document.getElementById('results-container').classList.remove('hidden');
+            };
 
-            } finally {
-                toggleLoading(false);
-            }
+            // --- Form Submission Handler ---
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                messageBox.classList.add('hidden');
+                loadingSpinner.classList.remove('hidden');
+                compareButton.disabled = true;
+
+                const formData = new FormData(form);
+                const standardCementType = formData.get('cement_type');
+                const standardCementGrade = standardCementType === 'OPC' ? parseInt(formData.get('cement_grade')) : 0;
+                const placingMethod = formData.get('placing_method');
+                
+                const payload = {
+                    standard: {
+                        fck_mpa: parseFloat(formData.get('fck_mpa')),
+                        w_c_ratio: parseFloat(formData.get('w_c_ratio')),
+                        slump_mm: parseFloat(formData.get('slump_mm')),
+                        exposure: formData.get('exposure'),
+                        max_agg_size_mm: parseInt(formData.get('max_agg_size_mm')),
+                        use_superplasticizer: formData.get('use_superplasticizer') === 'on',
+                        cement_type: standardCementType,
+                        cement_grade: standardCementGrade,
+                        placing_method: placingMethod,
+                    },
+                    eco: {
+                        fck_mpa: parseFloat(formData.get('fck_mpa')),
+                        w_c_ratio: parseFloat(formData.get('w_c_ratio')),
+                        slump_mm: parseFloat(formData.get('slump_mm')),
+                        exposure: formData.get('exposure'),
+                        max_agg_size_mm: parseInt(formData.get('max_agg_size_mm')),
+                        use_superplasticizer: formData.get('use_superplasticizer') === 'on',
+                        cement_type: standardCementType,
+                        cement_grade: standardCementGrade,
+                        placing_method: placingMethod,
+                        
+                        // Eco Mix SCMs
+                        ggbs_frac: parseFloat(formData.get('ggbs_frac') || 0.0),
+                        flyash_frac: parseFloat(formData.get('flyash_frac') || 0.0),
+                        silica_fume_frac: parseFloat(formData.get('silica_fume_frac') || 0.0),
+                        rice_husk_ash_frac: parseFloat(formData.get('rice_husk_ash_frac') || 0.0),
+                        metakaolin_frac: parseFloat(formData.get('metakaolin_frac') || 0.0),
+                        sugarcane_ash_frac: parseFloat(formData.get('sugarcane_ash_frac') || 0.0),
+                    }
+                };
+
+                try {
+                    const response = await fetch(API_BASE_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(payload),
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || `HTTP error! Status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    renderResults(data);
+                    showMessage('success', 'Mix design comparison successful!');
+
+                } catch (error) {
+                    console.error('Design Error:', error);
+                    showMessage('error', `Design Error: ${error.message}`);
+                    document.getElementById('results-container').classList.add('hidden');
+                    document.getElementById('warnings-container').classList.add('hidden');
+                } finally {
+                    loadingSpinner.classList.add('hidden');
+                    compareButton.disabled = false;
+                }
+            });
+
+            // --- Initial Setup ---
+            cementTypeSelect.addEventListener('change', updateCementGradeVisibility);
+            updateCementGradeVisibility();
         });
-
-        // --- Initial Setup ---
-
-        document.addEventListener('DOMContentLoaded', () => {
-            toggleCementGradeInput(); // Initialize the grade field visibility
-            cementTypeSelect.addEventListener('change', toggleCementGradeInput);
-        });
-        
     </script>
-
 </body>
 </html>
