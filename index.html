@@ -6,6 +6,8 @@
     <title>EcoMix Carbon Comparator</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
         /* Custom scrollbar styling for better aesthetics */
         body::-webkit-scrollbar {
@@ -309,6 +311,13 @@
                                 <tr>
                                     <td colspan="3" class="px-6 py-2 text-sm font-bold text-gray-700 bg-gray-100 uppercase tracking-wider">Predicted Performance Metrics</td>
                                 </tr>
+                                
+                                <!-- Mix Ratio -->
+                                <tr class="hover:bg-blue-50/50 font-bold text-blue-700">
+                                    <td class="px-6 py-3 text-sm font-medium">Mix Ratio (C:FA:CA)</td>
+                                    <td id="std_mix_ratio" class="px-6 py-3 text-sm text-right"></td>
+                                    <td id="eco_mix_ratio" class="px-6 py-3 text-sm text-right"></td>
+                                </tr>
 
                                 <!-- Predicted Strength -->
                                 <tr class="hover:bg-green-50/50">
@@ -464,6 +473,18 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Plot Container -->
+                    <div class="grid md:grid-cols-2 gap-6 mt-8">
+                        <div class="p-4 border rounded-xl shadow-inner bg-gray-50">
+                            <h3 class="text-lg font-semibold text-gray-700 mb-3 text-center">Environmental Comparison (CO₂ per m³)</h3>
+                            <canvas id="co2Chart"></canvas>
+                        </div>
+                        <div class="p-4 border rounded-xl shadow-inner bg-gray-50">
+                            <h3 class="text-lg font-semibold text-gray-700 mb-3 text-center">Cementitious Mass Breakdown (kg/m³)</h3>
+                            <canvas id="binderChart"></canvas>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Warnings Section -->
@@ -482,6 +503,10 @@
     </div>
 
     <script>
+        // Global chart instances
+        let co2ChartInstance = null;
+        let binderChartInstance = null;
+
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('design-form');
             const messageBox = document.getElementById('message-box');
@@ -591,6 +616,113 @@
                     }
                 }
             };
+
+            const renderCharts = (data) => {
+                const labels = ['Standard Mix', 'Eco Mix'];
+                const stdMasses = data.standard.mix_masses_kg_per_m3;
+                const ecoMasses = data.eco.mix_masses_kg_per_m3;
+                const scmKeys = ['ggbs', 'flyash', 'metakaolin', 'silicafume', 'rha', 'sugarcane_ash'];
+                
+                // 1. Environmental Comparison (CO2)
+                const co2Data = [
+                    data.standard.co2.co2_eco_kg_per_m3,
+                    data.eco.co2.co2_eco_kg_per_m3
+                ];
+                
+                if (co2ChartInstance) co2ChartInstance.destroy();
+                const co2Ctx = document.getElementById('co2Chart').getContext('2d');
+                co2ChartInstance = new Chart(co2Ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'CO₂ Emissions (kg/m³)',
+                            data: co2Data,
+                            backgroundColor: ['#f87171', '#34d399'], // Red for Standard, Green for Eco
+                            borderRadius: 6,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'kg CO₂ per m³'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { mode: 'index' }
+                        }
+                    }
+                });
+
+                // 2. Cementitious Mass Breakdown (Stacked Bar)
+                let binderLabels = ['Cement'];
+                let stdData = [stdMasses.cement_actual];
+                let ecoData = [ecoMasses.cement_actual];
+                
+                let scmColors = ['#fde047', '#38bdf8', '#818cf8', '#fb923c', '#a78bfa', '#f472b6'];
+                let scmDatasets = [];
+                let colorIndex = 0;
+
+                // Process SCMs for the chart
+                scmKeys.forEach(key => {
+                    const stdScmMass = stdMasses[key] || 0;
+                    const ecoScmMass = ecoMasses[key] || 0;
+
+                    if (stdScmMass > 0.1 || ecoScmMass > 0.1) {
+                        scmDatasets.push({
+                            label: key.toUpperCase().replace('_', ' '),
+                            data: [ecoScmMass, stdScmMass], // Chartjs handles data order slightly differently for stacking
+                            backgroundColor: scmColors[colorIndex % scmColors.length],
+                        });
+                        colorIndex++;
+                    }
+                });
+
+                // Add Cement dataset last (or first, depending on desired stack order)
+                const cementDataset = {
+                    label: 'Cement (OPC)',
+                    data: [ecoMasses.cement_actual, stdMasses.cement_actual],
+                    backgroundColor: '#1f2937', // Dark gray for cement
+                };
+                scmDatasets.unshift(cementDataset);
+                
+                if (binderChartInstance) binderChartInstance.destroy();
+                const binderCtx = document.getElementById('binderChart').getContext('2d');
+                binderChartInstance = new Chart(binderCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: scmDatasets.reverse() // Reverse so OPC is at the bottom/base
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        scales: {
+                            x: {
+                                stacked: true,
+                                title: {
+                                    display: true,
+                                    text: 'Mass (kg/m³)'
+                                }
+                            },
+                            y: {
+                                stacked: true,
+                                grid: { display: false }
+                            }
+                        },
+                        plugins: {
+                            legend: { position: 'bottom' },
+                            tooltip: { mode: 'index', intersect: false }
+                        }
+                    }
+                });
+            };
             
 
             const renderResults = (data) => {
@@ -607,6 +739,8 @@
                 setComparisonMetrics(data.comparison);
 
                 // --- 2. Update Performance Metrics (Per 1 m³) ---
+                document.getElementById('std_mix_ratio').textContent = data.standard.predictions.mix_ratio;
+                document.getElementById('eco_mix_ratio').textContent = data.eco.predictions.mix_ratio;
                 document.getElementById('std_strength').textContent = formatValue(data.standard.predictions.predicted_28d_strength_MPa) + ' MPa';
                 document.getElementById('eco_strength').textContent = formatValue(data.eco.predictions.predicted_28d_strength_MPa) + ' MPa';
                 document.getElementById('std_co2').textContent = formatValue(data.standard.co2.co2_eco_kg_per_m3) + ' kg/m³';
@@ -683,6 +817,9 @@
                 } else {
                     warningsContainer.classList.add('hidden');
                 }
+
+                // --- 7. Render Charts ---
+                renderCharts(data);
 
                 document.getElementById('results-container').classList.remove('hidden');
             };
@@ -805,6 +942,10 @@
                     showMessage('error', `Design Error: ${error.message}`);
                     document.getElementById('results-container').classList.add('hidden');
                     document.getElementById('warnings-container').classList.add('hidden');
+                    
+                    // Destroy charts on error
+                    if (co2ChartInstance) co2ChartInstance.destroy();
+                    if (binderChartInstance) binderChartInstance.destroy();
                 } finally {
                     loadingSpinner.classList.add('hidden');
                     compareButton.disabled = false;

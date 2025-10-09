@@ -298,9 +298,23 @@ def compute_mix_from_inputs(
     exposure_penalty = {"mild": 0, "moderate": -5, "severe": -12, "very_severe": -18, "extreme": -25}
     durability_index += exposure_penalty.get(exposure.lower(), -5)
     durability_index = max(20, min(100, durability_index))
+    
+    # 15) Mix Ratio (Cementitious: Fine Aggregate: Coarse Aggregate)
+    # Normalize by Cementitious Mass
+    ratio_cementitious = cementitious_total_mass
+    ratio_fine_agg = mass_fine
+    ratio_coarse_agg = mass_coarse
+    
+    if ratio_cementitious > 0:
+        ratio_divisor = ratio_cementitious
+        ratio_fa = ratio_fine_agg / ratio_divisor
+        ratio_ca = ratio_coarse_agg / ratio_divisor
+        mix_ratio = f"1 : {ratio_fa:.2f} : {ratio_ca:.2f}"
+    else:
+        mix_ratio = "N/A"
 
 
-    # 15) Calculate Project Quantities
+    # 16) Calculate Project Quantities
     project_factor = project_volume_m3 * (1.0 + wastage_pct / 100.0)
     
     project_quantities = {
@@ -314,7 +328,7 @@ def compute_mix_from_inputs(
     }
 
 
-    # 16) assemble result
+    # 17) assemble result
     result = {
         "mix_masses_kg_per_m3": {
             "cement_actual": round(cement_actual_mass, 2),
@@ -325,6 +339,7 @@ def compute_mix_from_inputs(
             "air_pct": round(air_pct, 2)
         },
         "predictions": {
+            "mix_ratio": mix_ratio, # NEW OUTPUT
             "predicted_28d_strength_MPa": round(predicted_fc_28, 2),
             "workability_class": work_class,
             "durability_index_0_100": round(durability_index, 1)
