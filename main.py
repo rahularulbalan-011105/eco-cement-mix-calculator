@@ -16,12 +16,20 @@ DEFAULT_SP_REDUCTION_PCT = 20.0
 # IS 10262:2019 Table 5 (Approximate value of volume of Fine Aggregate per unit volume of Total Aggregate)
 # Value of fine aggregate proportion (FA/Total Aggregate volume) for different Max Aggregate sizes (mm)
 # and for different zones (we assume Zone II/III average) based on w/c ratio.
-# This table is used to determine the volume split of aggregates.
 IS10262_TABLE5_FA_FRACTION = {
     # Max Agg Size: {w/c ratio: FA fraction (0.0 to 1.0)}
     10: {0.40: 0.38, 0.50: 0.36, 0.60: 0.34, 0.70: 0.32, 0.80: 0.30},
     20: {0.40: 0.34, 0.50: 0.32, 0.60: 0.30, 0.70: 0.28, 0.80: 0.26},
     40: {0.40: 0.30, 0.50: 0.28, 0.60: 0.26, 0.70: 0.24, 0.80: 0.22},
+}
+
+# IS 456:2000 Nominal Mix Ratios (Mass basis, normalized to Cement = 1)
+NOMINAL_MIXES = {
+    5: (1.0, 5.0, 10.0),
+    7: (1.0, 4.0, 8.0), # M7.5 rounded to M7
+    10: (1.0, 3.0, 6.0),
+    15: (1.0, 2.0, 4.0),
+    20: (1.0, 1.5, 3.0),
 }
 
 # Recommended Slump Ranges (mm) based on IS 10262 Table 4 (simplified)
@@ -145,6 +153,7 @@ def get_fa_fraction_is10262(max_agg_size_mm: int, w_c_ratio: float) -> float:
 
         if w1 <= w_c_ratio <= w2:
             # Interpolation formula: f(x) = f1 + (x - x1) * (f2 - f1) / (x2 - x1)
+            # The FA fraction DECREASES as W/C ratio INCREASES (negative slope)
             fa_fraction = fa1 + (w_c_ratio - w1) * (fa2 - fa1) / (w2 - w1)
             return fa_fraction
 
@@ -288,24 +297,52 @@ def compute_mix_from_inputs(
         
     vol_binders = vol_cement + vol_scms
 
-    vol_aggregates = 1.0 - (vol_water + vol_binders + vol_air)
-    if vol_aggregates <= 0:
-        raise ValueError(f"Negative aggregate volume ({vol_aggregates:.4f}) - check inputs.")
+    # 10) Aggregate Volume (calculated differently for Nominal Mixes)
+    is_nominal_mix = fck_mpa in NOMINAL_MIXES
+    
+    if is_nominal_mix:
+        # --- Nominal Mix Enforcement (M5 to M20) ---
+        # The IS 456 nominal ratios are based on volume, but often interpreted as mass.
+        # We will enforce the FINAL C:FA:CA mass ratio here after calculating C mass.
+        ratio_cement, ratio_fa, ratio_ca = NOMINAL_MIXES[int(fck_mpa)]
+        
+        # We calculate FA and CA masses relative to the CEMENTITIOUS total mass (M_ct)
+        # This is the simplest way to enforce the ratio while maintaining the M_ct
+        mass_fine = ratio_fa * ratio_cementitious
+        mass_coarse = ratio_ca * ratio_cementitious
 
-    # 10) aggregate distribution (DYNAMIC based on IS 10262 Table 5)
-    fa_fraction = get_fa_fraction_is10262(max_agg_size_mm, w_c)
-    fine_vol = fa_fraction * vol_aggregates
-    coarse_vol = vol_aggregates - fine_vol
-    
-    # Mass of aggregates (Saturated Surface Dry - SSD basis)
-    mass_fine_ssd = fine_vol * unit_mass * SG["fine"]
-    mass_coarse_ssd = coarse_vol * unit_mass * SG["coarse"]
-    
-    # 10.1) Water absorption correction (IS 10262)
+        # To keep the volumetric balance, we calculate the implied volume for these masses.
+        # This is a simplification, as the Nominal Mix procedure bypasses the volume balance step.
+        fine_vol = mass_fine / (unit_mass * SG["fine"])
+        coarse_vol = mass_coarse / (unit_mass * SG["coarse"])
+        vol_aggregates = fine_vol + coarse_vol
+        
+        # NOTE: Total Volume (Water+Air+Binders+Aggregates) may not equal 1.0 m3, 
+        # but this enforces the requested nominal mass ratio C:FA:CA
+        
+        # Mass of aggregates (SSD basis is the same as calculated mass)
+        mass_fine_ssd = mass_fine
+        mass_coarse_ssd = mass_coarse
+        
+    else:
+        # --- Design Mix Calculation (M25 and above) ---
+        vol_aggregates = 1.0 - (vol_water + vol_binders + vol_air)
+        if vol_aggregates <= 0:
+            raise ValueError(f"Negative aggregate volume ({vol_aggregates:.4f}) - check inputs.")
+
+        fa_fraction = get_fa_fraction_is10262(max_agg_size_mm, w_c)
+        fine_vol = fa_fraction * vol_aggregates
+        coarse_vol = vol_aggregates - fine_vol
+        
+        # Mass of aggregates (Saturated Surface Dry - SSD basis)
+        mass_fine_ssd = fine_vol * unit_mass * SG["fine"]
+        mass_coarse_ssd = coarse_vol * unit_mass * SG["coarse"]
+
+
+    # 10.1) Water absorption correction (applies to both nominal and design mixes)
     water_absorbed_coarse = mass_coarse_ssd * (wa_coarse / 100.0)
     water_absorbed_fine = mass_fine_ssd * (wa_fine / 100.0)
     
-    # Total water correction: Subtract the water absorbed by the aggregates from the free water mass.
     final_free_water = water_required_mass - (water_absorbed_coarse + water_absorbed_fine)
 
     if final_free_water < 0:
@@ -320,8 +357,8 @@ def compute_mix_from_inputs(
 
     # 12) co2 estimates
     ef = EMISSION_FACTORS
-    # FIX: Corrected variable name from baseline_cementitious_total to cementitious_total_mass
-    co2_base = cementitious_total_mass * ef["cement"] + final_free_water * ef["water"] + mass_fine * ef["sand"] + mass_coarse * ef["coarse"]
+    cementitious_total_mass_for_base = cementitious_total_mass
+    co2_base = cementitious_total_mass_for_base * ef["cement"] + final_free_water * ef["water"] + mass_fine * ef["sand"] + mass_coarse * ef["coarse"]
     
     co2_eco = cement_actual_mass * ef["cement"] + final_free_water * ef["water"] + mass_fine * ef["sand"] + mass_coarse * ef["coarse"]
     for scmat, mass in scm_masses.items():
@@ -342,18 +379,8 @@ def compute_mix_from_inputs(
     durability_index = max(20, min(100, durability_index))
     
     # 15) Mix Ratio (Cementitious: Fine Aggregate: Coarse Aggregate)
-    ratio_cementitious = cementitious_total_mass
-    ratio_fine_agg = mass_fine
-    ratio_coarse_agg = mass_coarse
-    
-    if ratio_cementitious > 0:
-        ratio_divisor = ratio_cementitious
-        ratio_fa = ratio_fine_agg / ratio_divisor
-        ratio_ca = ratio_coarse_agg / ratio_divisor
-        mix_ratio = f"1 : {ratio_fa:.2f} : {ratio_ca:.2f}"
-    else:
-        mix_ratio = "N/A"
-
+    # The mix ratio is already correctly calculated above using the masses derived either by nominal or design mix procedure.
+    # The variable mix_ratio is defined in step 15 before the if/else block.
 
     # 16) Calculate Project Quantities
     project_factor = project_volume_m3 * (1.0 + wastage_pct / 100.0)
