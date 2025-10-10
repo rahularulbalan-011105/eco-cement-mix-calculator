@@ -320,8 +320,8 @@ def compute_mix_from_inputs(
 
     # 12) co2 estimates
     ef = EMISSION_FACTORS
-    baseline_cement_total = cementitious_total_mass 
-    co2_base = baseline_cementitious_total * ef["cement"] + final_free_water * ef["water"] + mass_fine * ef["sand"] + mass_coarse * ef["coarse"]
+    # FIX: Corrected variable name from baseline_cementitious_total to cementitious_total_mass
+    co2_base = cementitious_total_mass * ef["cement"] + final_free_water * ef["water"] + mass_fine * ef["sand"] + mass_coarse * ef["coarse"]
     
     co2_eco = cement_actual_mass * ef["cement"] + final_free_water * ef["water"] + mass_fine * ef["sand"] + mass_coarse * ef["coarse"]
     for scmat, mass in scm_masses.items():
