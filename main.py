@@ -14,8 +14,6 @@ SLUMP_CORRECTION_PERCENT_PER_25MM = 3.0
 DEFAULT_SP_REDUCTION_PCT = 20.0
 
 # IS 10262:2019 Table 5 (Approximate value of volume of Fine Aggregate per unit volume of Total Aggregate)
-# Value of fine aggregate proportion (FA/Total Aggregate volume) for different Max Aggregate sizes (mm)
-# and for different zones (we assume Zone II/III average) based on w/c ratio.
 IS10262_TABLE5_FA_FRACTION = {
     # Max Agg Size: {w/c ratio: FA fraction (0.0 to 1.0)}
     10: {0.40: 0.38, 0.50: 0.36, 0.60: 0.34, 0.70: 0.32, 0.80: 0.30},
@@ -24,9 +22,10 @@ IS10262_TABLE5_FA_FRACTION = {
 }
 
 # IS 456:2000 Nominal Mix Ratios (Mass basis, normalized to Cement = 1)
+# NOTE: M7.5 is included here as M7
 NOMINAL_MIXES = {
     5: (1.0, 5.0, 10.0),
-    7: (1.0, 4.0, 8.0), # M7.5 rounded to M7
+    7: (1.0, 4.0, 8.0), 
     10: (1.0, 3.0, 6.0),
     15: (1.0, 2.0, 4.0),
     20: (1.0, 1.5, 3.0),
@@ -135,36 +134,29 @@ def get_fa_fraction_is10262(max_agg_size_mm: int, w_c_ratio: float) -> float:
     """
     agg_data = IS10262_TABLE5_FA_FRACTION.get(max_agg_size_mm)
     if not agg_data:
-        # Default to a safe average if max agg size is unsupported in the table
         return 0.35 
 
     w_c_points = sorted(agg_data.keys())
     
-    # Handle extrapolation (for w/c outside the table range 0.40 - 0.80)
     if w_c_ratio <= w_c_points[0]:
         return agg_data[w_c_points[0]]
     if w_c_ratio >= w_c_points[-1]:
         return agg_data[w_c_points[-1]]
 
-    # Linear interpolation
     for i in range(len(w_c_points) - 1):
         w1, w2 = w_c_points[i], w_c_points[i+1]
         fa1, fa2 = agg_data[w1], agg_data[w2]
 
         if w1 <= w_c_ratio <= w2:
-            # Interpolation formula: f(x) = f1 + (x - x1) * (f2 - f1) / (x2 - x1)
-            # The FA fraction DECREASES as W/C ratio INCREASES (negative slope)
             fa_fraction = fa1 + (w_c_ratio - w1) * (fa2 - fa1) / (w2 - w1)
             return fa_fraction
 
-    return 0.35 # Should not be reached, but as a final safety fallback
+    return 0.35
 
 def calculate_eco_score(co2_reduction_pct: float, durability_index: float) -> float:
     """
     Heuristic score (0-100) based on environmental (CO2) and performance (durability).
-    Weights: CO2 Reduction (70%), Durability (30%).
     """
-    # Normalize CO2 reduction (Max possible reduction is roughly 60% with current limits)
     normalized_co2 = min(co2_reduction_pct / 60.0, 1.0) * 100.0
     
     eco_score = (normalized_co2 * 0.70) + (durability_index * 0.30)
@@ -266,7 +258,6 @@ def compute_mix_from_inputs(
     if not compliance_cement:
         warnings.append(f"Cement {cement_actual_mass:.1f} kg/m³ < IS-456 minimum {min_cement_req} kg/m³ for {exposure.title()}. Raising cement content.")
         
-        # Adjust to minimum cement
         cement_actual_mass = float(min_cement_req)
         
         if (1.0 - total_scm_fraction) <= 0:
@@ -278,51 +269,42 @@ def compute_mix_from_inputs(
         for k, frac in replacements.items():
              scm_masses[k] = cementitious_total_mass * frac
         
-        water_required_mass = cementitious_total_mass * w_c # Recalculate water based on the original w/c ratio
+        water_required_mass = cementitious_total_mass * w_c
 
     # 8) air fraction
     air_pct = AIR_CONTENT_PCT.get(max_agg_size_mm, 1.0)
     vol_air = air_pct / 100.0
 
     # 9) volumes (using user-defined SG)
-    unit_mass = 1000.0 # kg/m3 (for density of water)
+    unit_mass = 1000.0
     
     vol_water = water_required_mass / unit_mass
     vol_cement = cement_actual_mass / (unit_mass * SG["cement"])
     
     vol_scms = 0.0
     for scmat, mass in scm_masses.items():
-        sg_scm = SCM_SG.get(scmat.lower(), default_scm_sg) # Use user SG or default
+        sg_scm = SCM_SG.get(scmat.lower(), default_scm_sg)
         vol_scms += mass / (unit_mass * sg_scm)
         
     vol_binders = vol_cement + vol_scms
 
-    # 10) Aggregate Volume (calculated differently for Nominal Mixes)
-    is_nominal_mix = fck_mpa in NOMINAL_MIXES
+    # Initialize mass and ratio variables
+    mass_fine_ssd = 0.0
+    mass_coarse_ssd = 0.0
+    mix_ratio = "N/A" # Initialized mix_ratio
+    
+    is_nominal_mix = int(fck_mpa) in NOMINAL_MIXES and fck_mpa <= 20
     
     if is_nominal_mix:
         # --- Nominal Mix Enforcement (M5 to M20) ---
-        # The IS 456 nominal ratios are based on volume, but often interpreted as mass.
-        # We will enforce the FINAL C:FA:CA mass ratio here after calculating C mass.
         ratio_cement, ratio_fa, ratio_ca = NOMINAL_MIXES[int(fck_mpa)]
         
-        # We calculate FA and CA masses relative to the CEMENTITIOUS total mass (M_ct)
-        # This is the simplest way to enforce the ratio while maintaining the M_ct
-        mass_fine = ratio_fa * ratio_cementitious
-        mass_coarse = ratio_ca * ratio_cementitious
+        # We calculate FA and CA masses relative to the CEMENTITIOUS total mass
+        mass_fine_ssd = ratio_fa * cementitious_total_mass
+        mass_coarse_ssd = ratio_ca * cementitious_total_mass
 
-        # To keep the volumetric balance, we calculate the implied volume for these masses.
-        # This is a simplification, as the Nominal Mix procedure bypasses the volume balance step.
-        fine_vol = mass_fine / (unit_mass * SG["fine"])
-        coarse_vol = mass_coarse / (unit_mass * SG["coarse"])
-        vol_aggregates = fine_vol + coarse_vol
-        
-        # NOTE: Total Volume (Water+Air+Binders+Aggregates) may not equal 1.0 m3, 
-        # but this enforces the requested nominal mass ratio C:FA:CA
-        
-        # Mass of aggregates (SSD basis is the same as calculated mass)
-        mass_fine_ssd = mass_fine
-        mass_coarse_ssd = mass_coarse
+        # The mix ratio is fixed by the nominal mix definition
+        mix_ratio = f"1 : {ratio_fa:.2f} : {ratio_ca:.2f}"
         
     else:
         # --- Design Mix Calculation (M25 and above) ---
@@ -334,10 +316,16 @@ def compute_mix_from_inputs(
         fine_vol = fa_fraction * vol_aggregates
         coarse_vol = vol_aggregates - fine_vol
         
-        # Mass of aggregates (Saturated Surface Dry - SSD basis)
         mass_fine_ssd = fine_vol * unit_mass * SG["fine"]
         mass_coarse_ssd = coarse_vol * unit_mass * SG["coarse"]
-
+        
+        # Design Mix Ratio (calculated based on mass proportions)
+        ratio_cementitious = cementitious_total_mass
+        if ratio_cementitious > 0:
+            ratio_divisor = ratio_cementitious
+            ratio_fa = mass_fine_ssd / ratio_divisor
+            ratio_ca = mass_coarse_ssd / ratio_divisor
+            mix_ratio = f"1 : {ratio_fa:.2f} : {ratio_ca:.2f}"
 
     # 10.1) Water absorption correction (applies to both nominal and design mixes)
     water_absorbed_coarse = mass_coarse_ssd * (wa_coarse / 100.0)
@@ -378,10 +366,6 @@ def compute_mix_from_inputs(
     durability_index += exposure_penalty.get(exposure.lower(), -5)
     durability_index = max(20, min(100, durability_index))
     
-    # 15) Mix Ratio (Cementitious: Fine Aggregate: Coarse Aggregate)
-    # The mix ratio is already correctly calculated above using the masses derived either by nominal or design mix procedure.
-    # The variable mix_ratio is defined in step 15 before the if/else block.
-
     # 16) Calculate Project Quantities
     project_factor = project_volume_m3 * (1.0 + wastage_pct / 100.0)
     
@@ -651,6 +635,6 @@ def get_strength_curve_data(payload: StrengthCurveInput):
 def health():
     return {"status":"ok"}
 
-# Run server with: uvicorn app:app --reload
+# Run server with: uvicorn main:app --reload
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
