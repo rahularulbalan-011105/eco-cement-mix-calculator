@@ -5,16 +5,6 @@ from typing import Optional, Dict, List
 from math import pow
 import uvicorn
 
-#new addings
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
-
-app.mount("/static", StaticFiles(directory="."), name="static")
-
-@app.get("/")
-def serve_frontend():
-    return FileResponse("index.html")
-#new addings end here
 # -------------------------
 # Configuration & IS tables
 # -------------------------
@@ -486,6 +476,16 @@ class CompareInput(BaseModel):
 
 app = FastAPI(title="EcoMix Design API", version="1.0")
 
+#new addings
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+app.mount("/static", StaticFiles(directory="."), name="static")
+
+@app.get("/")
+def serve_frontend():
+    return FileResponse("index.html")
+#new addings end here
 # Allow CORS for frontend (adjust origins for production)
 app.add_middleware(
     CORSMiddleware,
