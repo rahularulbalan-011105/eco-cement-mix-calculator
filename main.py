@@ -5,6 +5,16 @@ from typing import Optional, Dict, List
 from math import pow
 import uvicorn
 
+#new addings
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+app.mount("/static", StaticFiles(directory="."), name="static")
+
+@app.get("/")
+def serve_frontend():
+    return FileResponse("index.html")
+#new addings end here
 # -------------------------
 # Configuration & IS tables
 # -------------------------
